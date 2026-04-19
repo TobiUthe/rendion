@@ -1,0 +1,399 @@
+"use client";
+
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import * as d3 from "d3";
+import {
+  CHART_COLORS,
+  formatAxisK,
+  formatCurrency,
+  responsiveMargin,
+  responsiveFontSize,
+} from "@/lib/chart-utils";
+import { PALETTES } from "@/lib/design-tokens";
+import type { ProjectionRow } from "@/lib/schemas/calculator-output";
+
+interface D3WealthAccumulationChartProps {
+  projection: ProjectionRow[];
+  eigenkapital: number;
+  kaufnebenkosten?: number;
+}
+
+interface WealthDataPoint {
+  jahr: number;
+  eigenkapital: number;
+  tilgungDelta: number;
+  wertzuwachsDelta: number;
+  cashflowDelta: number;
+  cumulativeNet: number;
+}
+
+interface TooltipState {
+  x: number;
+  y: number;
+  row: WealthDataPoint;
+  visible: boolean;
+}
+
+const SERIES_KEYS = ["eigenkapital", "tilgungDelta", "wertzuwachsDelta", "cashflowDelta"] as const;
+type SeriesKey = (typeof SERIES_KEYS)[number];
+
+const NET_LINE_COLOR = PALETTES.gold[500];
+
+const SERIES_META: Record<SeriesKey, { color: string; label: string }> = {
+  eigenkapital: { color: PALETTES.stone[400], label: "Eigenkapital" },
+  tilgungDelta: { color: PALETTES.blush[600], label: "Tilgung" },
+  wertzuwachsDelta: { color: PALETTES.forest[500], label: "Wertzuwachs" },
+  cashflowDelta: { color: PALETTES.steel[500], label: "Cashflow" },
+};
+
+export function WealthAccumulationChart({
+  projection,
+  eigenkapital,
+  kaufnebenkosten = 0,
+}: D3WealthAccumulationChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  const hideTooltip = useCallback(() => setTooltip(null), []);
+
+  const netEigenkapital = eigenkapital - kaufnebenkosten;
+
+  const data = useMemo<WealthDataPoint[]>(() => {
+    const points: WealthDataPoint[] = [
+      {
+        jahr: 0,
+        eigenkapital: netEigenkapital,
+        tilgungDelta: 0,
+        wertzuwachsDelta: 0,
+        cashflowDelta: 0,
+        cumulativeNet: netEigenkapital,
+      },
+    ];
+    let prevTilgung = 0;
+    let prevWertzuwachs = 0;
+    let prevCashflow = 0;
+    for (const row of projection) {
+      points.push({
+        jahr: row.jahr,
+        eigenkapital: 0,
+        tilgungDelta: row.getilgterBetrag - prevTilgung,
+        wertzuwachsDelta: row.wertzuwachs - prevWertzuwachs,
+        cashflowDelta: row.kumulierterCashflow - prevCashflow,
+        cumulativeNet:
+          netEigenkapital + row.getilgterBetrag + row.wertzuwachs + row.kumulierterCashflow,
+      });
+      prevTilgung = row.getilgterBetrag;
+      prevWertzuwachs = row.wertzuwachs;
+      prevCashflow = row.kumulierterCashflow;
+    }
+    return points;
+  }, [projection, netEigenkapital]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setDimensions({ width: entry.contentRect.width, height: entry.contentRect.height });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || dimensions.width === 0) return;
+
+    const { width, height } = dimensions;
+    const baseMargin = responsiveMargin(width);
+    const margin = {
+      ...baseMargin,
+      top: 16,
+      bottom: 32,
+      right: Math.max(baseMargin.right, baseMargin.left),
+    };
+    const fontSize = responsiveFontSize(width);
+    const w = width - margin.left - margin.right;
+    const h = height - margin.top - margin.bottom;
+
+    const root = d3.select(svg);
+    root.selectAll("*").remove();
+    root.attr("width", width).attr("height", height);
+
+    const g = root.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleBand<number>().domain(data.map((d) => d.jahr)).range([0, w]).padding(0.25);
+
+    const stack = d3
+      .stack<WealthDataPoint>()
+      .keys(SERIES_KEYS as unknown as string[])
+      .order(d3.stackOrderNone)
+      .offset(d3.stackOffsetDiverging);
+
+    const stacked = stack(data);
+
+    const minDelta = d3.min(stacked, (layer) => d3.min(layer, (d) => d[0])) ?? 0;
+    const maxDelta = d3.max(stacked, (layer) => d3.max(layer, (d) => d[1])) ?? 0;
+    const leftPad = (maxDelta - minDelta) * 0.05;
+    const yLeft = d3
+      .scaleLinear()
+      .domain([Math.min(0, minDelta - leftPad), maxDelta + leftPad])
+      .nice()
+      .range([h, 0]);
+
+    const cumMax = d3.max(data, (d) => d.cumulativeNet) ?? 0;
+    const cumMin = Math.min(0, d3.min(data, (d) => d.cumulativeNet) ?? 0);
+    const yRight = d3.scaleLinear().domain([cumMin, cumMax * 1.05]).nice().range([h, 0]);
+
+    const barsGroup = g.append("g").attr("class", "bars");
+    const rr = Math.min(3, x.bandwidth() / 4);
+    const segGap = 1.5;
+
+    for (let li = 0; li < stacked.length; li++) {
+      const layer = stacked[li];
+      const key = layer.key as SeriesKey;
+      const color = SERIES_META[key].color;
+
+      barsGroup
+        .selectAll(`.bar-${key}`)
+        .data(layer)
+        .join("rect")
+        .attr("class", `bar-${key}`)
+        .each(function (d) {
+          const raw = Math.abs(yLeft(d[0]) - yLeft(d[1]));
+          if (raw < 1) {
+            d3.select(this)
+              .attr("x", x(d.data.jahr) ?? 0)
+              .attr("y", yLeft(d[1]))
+              .attr("width", x.bandwidth())
+              .attr("height", raw)
+              .attr("rx", 0)
+              .attr("fill", color)
+              .attr("fill-opacity", 0.8);
+            return;
+          }
+
+          const dataIdx = data.indexOf(d.data);
+          let isTop = true;
+          for (let j = li + 1; j < stacked.length; j++) {
+            if (Math.abs(stacked[j][dataIdx][1] - stacked[j][dataIdx][0]) > 0.01) {
+              isTop = false;
+              break;
+            }
+          }
+          let hasBelow = false;
+          for (let j = 0; j < li; j++) {
+            if (Math.abs(stacked[j][dataIdx][1] - stacked[j][dataIdx][0]) > 0.01) {
+              hasBelow = true;
+              break;
+            }
+          }
+
+          const topInset = isTop ? 0 : segGap / 2;
+          const bottomInset = hasBelow ? segGap / 2 : 0;
+          const adjH = Math.max(0, raw - topInset - bottomInset);
+          const adjY = yLeft(d[1]) + topInset;
+
+          d3.select(this)
+            .attr("x", x(d.data.jahr) ?? 0)
+            .attr("y", adjY)
+            .attr("width", x.bandwidth())
+            .attr("height", adjH)
+            .attr("rx", isTop ? rr : 0)
+            .attr("fill", color)
+            .attr("fill-opacity", 0.8);
+        });
+    }
+
+    const xAxisG = g
+      .append("g")
+      .attr("transform", `translate(0,${h})`)
+      .call(
+        d3
+          .axisBottom(x)
+          .tickValues(data.filter((d) => d.jahr % 5 === 0).map((d) => d.jahr))
+          .tickFormat((d) => String(d)),
+      );
+    xAxisG.select(".domain").attr("stroke", CHART_COLORS.axis).attr("stroke-opacity", 0.3);
+    xAxisG.selectAll("text").attr("fill", CHART_COLORS.axis).style("font-size", `${fontSize}px`);
+    xAxisG.selectAll(".tick line").remove();
+
+    const leftAxisG = g.append("g").call(d3.axisLeft(yLeft).ticks(5).tickFormat((d) => formatAxisK(d as number)));
+    leftAxisG.select(".domain").attr("stroke", CHART_COLORS.axis).attr("stroke-opacity", 0.3);
+    leftAxisG.selectAll("text").attr("fill", CHART_COLORS.axis).style("font-size", `${fontSize}px`);
+    leftAxisG.selectAll(".tick line").attr("stroke", CHART_COLORS.axis).attr("stroke-opacity", 0.2);
+
+    const rightAxisG = g
+      .append("g")
+      .attr("transform", `translate(${w},0)`)
+      .call(d3.axisRight(yRight).ticks(5).tickFormat((d) => formatAxisK(d as number)));
+    rightAxisG.select(".domain").attr("stroke", NET_LINE_COLOR).attr("stroke-opacity", 0.4);
+    rightAxisG.selectAll("text").attr("fill", NET_LINE_COLOR).style("font-size", `${fontSize}px`);
+    rightAxisG.selectAll(".tick line").attr("stroke", NET_LINE_COLOR).attr("stroke-opacity", 0.3);
+
+    const lineGen = d3
+      .line<WealthDataPoint>()
+      .x((d) => (x(d.jahr) ?? 0) + x.bandwidth() / 2)
+      .y((d) => yRight(d.cumulativeNet))
+      .curve(d3.curveMonotoneX);
+
+    g.append("path").datum(data).attr("fill", "none").attr("stroke", "white").attr("stroke-width", 4).attr("d", lineGen);
+    g.append("path").datum(data).attr("fill", "none").attr("stroke", NET_LINE_COLOR).attr("stroke-width", 2).attr("d", lineGen);
+
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", w)
+      .attr("y1", yLeft(0))
+      .attr("y2", yLeft(0))
+      .attr("stroke", CHART_COLORS.text)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-opacity", 0.6);
+
+    const lastRow = data[data.length - 1];
+    const defaultNet = lastRow.cumulativeNet;
+
+    const netIndicator = g.append("g").attr("class", "net-indicator");
+    netIndicator
+      .append("line")
+      .attr("class", "net-line")
+      .attr("x1", 0)
+      .attr("x2", w)
+      .attr("y1", yRight(defaultNet))
+      .attr("y2", yRight(defaultNet))
+      .attr("stroke", NET_LINE_COLOR)
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "4 3")
+      .attr("stroke-opacity", 0.7);
+    netIndicator
+      .append("text")
+      .attr("class", "net-label")
+      .attr("x", w + 6)
+      .attr("y", yRight(defaultNet))
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "start")
+      .attr("fill", NET_LINE_COLOR)
+      .style("font-size", `${fontSize}px`)
+      .style("font-weight", "700")
+      .text(formatAxisK(defaultNet));
+
+    const barCenters = data.map((d) => (x(d.jahr) ?? 0) + x.bandwidth() / 2);
+    let activeIdx = -1;
+
+    const applyHighlight = (idx: number) => {
+      if (idx === activeIdx) return;
+      activeIdx = idx;
+      if (idx < 0) {
+        barsGroup.selectAll("rect").attr("fill-opacity", 0.8);
+        netIndicator.select(".net-line").attr("y1", yRight(defaultNet)).attr("y2", yRight(defaultNet));
+        netIndicator.select(".net-label").attr("y", yRight(defaultNet)).text(formatAxisK(defaultNet));
+        setTooltip(null);
+        return;
+      }
+      const row = data[idx];
+      const net = row.cumulativeNet;
+
+      barsGroup.selectAll("rect").attr("fill-opacity", 0.25);
+      for (const layer of stacked) {
+        const key = layer.key as SeriesKey;
+        barsGroup
+          .selectAll<SVGRectElement, d3.SeriesPoint<WealthDataPoint>>(`.bar-${key}`)
+          .filter((pt) => pt.data.jahr === row.jahr)
+          .attr("fill-opacity", 1);
+      }
+
+      const netY = yRight(net);
+      netIndicator.select(".net-line").attr("y1", netY).attr("y2", netY);
+      netIndicator.select(".net-label").attr("y", netY).text(formatAxisK(net));
+
+      const barX = barCenters[idx] + margin.left;
+      const stackTop = stacked[stacked.length - 1][idx];
+      const rawY = yLeft(stackTop[1]) + margin.top;
+      const clampedY = Math.max(margin.top + 10, Math.min(rawY, height - margin.bottom - 10));
+      setTooltip({ x: barX, y: clampedY, row, visible: true });
+    };
+
+    g.append("rect")
+      .attr("width", w)
+      .attr("height", h)
+      .attr("fill", "transparent")
+      .style("cursor", "crosshair")
+      .on("mousemove", (event: MouseEvent) => {
+        const [mx] = d3.pointer(event);
+        let nearest = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < barCenters.length; i++) {
+          const dist = Math.abs(mx - barCenters[i]);
+          if (dist < bestDist) {
+            bestDist = dist;
+            nearest = i;
+          }
+        }
+        applyHighlight(nearest);
+      })
+      .on("mouseleave", () => applyHighlight(-1));
+  }, [dimensions, data]);
+
+  const tooltipStyle = useMemo(() => {
+    if (!tooltip) return undefined;
+    const containerW = dimensions.width;
+    const containerH = dimensions.height;
+    const tooltipW = 240;
+    const tooltipH = 220;
+    const flipX = tooltip.x + tooltipW + 16 > containerW;
+    const left = flipX ? Math.max(4, tooltip.x - tooltipW - 8) : tooltip.x + 12;
+    let top = tooltip.y - tooltipH - 10;
+    if (top < 4) top = tooltip.y + 10;
+    if (top + tooltipH > containerH - 4) top = containerH - tooltipH - 4;
+    top = Math.max(4, top);
+    return { left, top };
+  }, [tooltip, dimensions.width, dimensions.height]);
+
+  const tooltipNetTotal = tooltip ? tooltip.row.cumulativeNet : 0;
+
+  return (
+    <div className="relative w-full" role="img" aria-label="Diagramm: Vermögensaufbau">
+      <div ref={containerRef} className="relative h-72 w-full md:h-96" onMouseLeave={hideTooltip}>
+        <svg ref={svgRef} className="h-full w-full" />
+
+        {tooltip?.visible && (
+          <div
+            className="pointer-events-none absolute z-50 w-60 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-neutral-200/60"
+            style={tooltipStyle}
+          >
+            <p className="text-xs-plus font-semibold text-neutral-800">
+              {tooltip.row.jahr === 0 ? "Jahr 0 — Startkapital" : `Jahr ${tooltip.row.jahr} — Veränderung`}
+            </p>
+
+            <div className="mt-2 space-y-1">
+              {SERIES_KEYS.map((k) => {
+                const val = tooltip.row[k];
+                if (k === "eigenkapital" && val === 0) return null;
+                return (
+                  <div key={k} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-neutral-600">
+                      <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SERIES_META[k].color }} />
+                      {SERIES_META[k].label}
+                    </span>
+                    <span className="tabular-nums text-neutral-700">{formatCurrency(val)}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-1.5 flex items-center justify-between border-t border-sand-200 pt-1.5 text-xs">
+              <span className="flex items-center gap-1.5 text-neutral-600">
+                <span className="inline-block h-[2px] w-3 shrink-0 rounded-full" style={{ backgroundColor: NET_LINE_COLOR }} />
+                Netto (kumuliert)
+              </span>
+              <span className="font-semibold tabular-nums text-neutral-700">{formatCurrency(tooltipNetTotal)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
