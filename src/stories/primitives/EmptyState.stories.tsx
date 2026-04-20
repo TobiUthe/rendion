@@ -5,7 +5,6 @@ import { BarChart3 } from 'lucide-react';
 const meta = {
   title: 'Primitives/EmptyState',
   component: EmptyState,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

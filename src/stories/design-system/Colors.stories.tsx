@@ -3,7 +3,6 @@ import { PALETTES, SEMANTIC, CHART_SEMANTIC, CHART_ROLES } from '@/lib/design-to
 
 const meta = {
   title: 'Design System/Colors',
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

@@ -1,3 +1,6 @@
+import { cn } from "@/lib/utils";
+import { BODY, DATA } from "@/lib/design-tokens";
+
 export function KpiCard({
   label,
   value,
@@ -27,14 +30,14 @@ export function KpiCard({
     <div
       className={`rounded-lg border-t border-r border-b border-sand-200/60 border-l-[3px] p-5 shadow-sm transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md ${borderColors[color]} ${bgColors[color]}`}
     >
-      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+      <p className={cn(BODY.sectionLabel)}>
         {label}
       </p>
-      <p className="mt-2 font-mono text-xl font-bold tabular-nums text-neutral-800">
+      <p className={cn(DATA.kpiStandard, "mt-2")}>
         {value}
       </p>
       {subtitle && (
-        <p className="mt-1 text-xs text-neutral-400">{subtitle}</p>
+        <p className={cn(BODY.muted, "mt-1")}>{subtitle}</p>
       )}
     </div>
   );

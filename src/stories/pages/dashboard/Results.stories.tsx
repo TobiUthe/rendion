@@ -5,13 +5,12 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { VerdictHero } from '@/components/results/VerdictHero';
 import { AnalysisKpiCards } from '@/components/results/AnalysisKpiCards';
 import { Section } from '@/components/layout/Section';
-import { WealthProjectionChart } from '@/components/charts/WealthProjectionChart';
-import { CashflowBarChart } from '@/components/charts/CashflowBarChart';
+import { WealthAccumulationChart } from '@/components/charts/d3/WealthAccumulationChart';
+import { WaterfallChart } from '@/components/charts/d3/WaterfallChart';
 import { MOCK_ANALYSIS } from '@/lib/mock/analysis';
 
 const meta = {
   title: 'Pages/Dashboard/Results',
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },
@@ -38,12 +37,16 @@ const ResultsPageComposition = ({ verdict = 'good' }: { verdict?: 'good' | 'mixe
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div style={{ height: '400px' }}>
             <Section title="Vermögensentwicklung 30 Jahre" variant="card">
-              <WealthProjectionChart data={MOCK_ANALYSIS.projection} />
+              <WealthAccumulationChart
+                projection={MOCK_ANALYSIS.projection}
+                eigenkapital={MOCK_ANALYSIS.eigenkapital}
+                kaufnebenkosten={MOCK_ANALYSIS.kaufnebenkosten}
+              />
             </Section>
           </div>
           <div style={{ height: '400px' }}>
             <Section title="Monatlicher Cashflow" variant="card">
-              <CashflowBarChart data={MOCK_ANALYSIS.cashflowMonthly} />
+              <WaterfallChart items={MOCK_ANALYSIS.cashflowWaterfall} />
             </Section>
           </div>
         </div>

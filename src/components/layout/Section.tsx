@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { HEADINGS, BODY } from "@/lib/design-tokens";
 
 interface SectionProps {
   /** Optional section ID for deep linking */
@@ -59,12 +60,12 @@ export function Section({
         >
           <div>
             {title && (
-              <h2 className="font-display text-base font-semibold text-neutral-800">
+              <h2 className={cn(HEADINGS.h4)}>
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="mt-0.5 text-sm text-neutral-500">{subtitle}</p>
+              <p className={cn(BODY.default, "mt-0.5")}>{subtitle}</p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}

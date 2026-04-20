@@ -4,7 +4,6 @@ import { WaterfallChart } from "@/components/charts/d3/WaterfallChart";
 const meta = {
   title: "Comprehensive Components/Charts/WaterfallChart",
   component: WaterfallChart,
-  tags: ["autodocs"],
   parameters: { layout: "centered" },
 } satisfies Meta<typeof WaterfallChart>;
 

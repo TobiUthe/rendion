@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/Card';
 const meta = {
   title: 'Primitives/Card',
   component: Card,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

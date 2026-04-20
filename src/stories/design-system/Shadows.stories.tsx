@@ -2,7 +2,6 @@ import type { Meta } from '@storybook/react';
 
 const meta = {
   title: 'Design System/Shadows',
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

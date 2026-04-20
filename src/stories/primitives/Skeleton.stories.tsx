@@ -4,7 +4,6 @@ import { Skeleton } from '@/components/ui/Skeleton';
 const meta = {
   title: 'Primitives/Skeleton',
   component: Skeleton,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

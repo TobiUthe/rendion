@@ -6,7 +6,6 @@ import { NumberInput } from "@/components/ui/NumberInput";
 const meta = {
   title: "Primitives/Input",
   component: Input,
-  tags: ["autodocs"],
   parameters: { layout: "centered" },
 } satisfies Meta<typeof Input>;
 

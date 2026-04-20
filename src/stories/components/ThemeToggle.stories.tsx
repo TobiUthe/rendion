@@ -4,7 +4,6 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 const meta = {
   title: 'Components/ThemeToggle',
   component: ThemeToggle,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

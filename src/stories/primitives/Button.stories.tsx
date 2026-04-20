@@ -5,7 +5,6 @@ import { Plus } from 'lucide-react';
 const meta = {
   title: 'Primitives/Button',
   component: Button,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

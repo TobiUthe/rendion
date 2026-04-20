@@ -25,6 +25,9 @@ const preview: Preview = {
     a11y: {
       test: 'todo',
     },
+    nextjs: {
+      appDirectory: true,
+    },
     options: {
       storySort: {
         order: [

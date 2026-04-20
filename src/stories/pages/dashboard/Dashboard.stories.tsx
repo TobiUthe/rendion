@@ -10,7 +10,6 @@ import { BarChart3 } from 'lucide-react';
 
 const meta = {
   title: 'Pages/Dashboard/Dashboard',
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

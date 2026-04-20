@@ -4,7 +4,6 @@ import { Calculator } from "@/components/calculator/Calculator";
 const meta = {
   title: "Comprehensive Components/Calculator",
   component: Calculator,
-  tags: ["autodocs"],
   parameters: { layout: "centered" },
 } satisfies Meta<typeof Calculator>;
 

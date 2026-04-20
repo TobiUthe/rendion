@@ -4,7 +4,6 @@ import { TrustBadges } from '@/components/landing/TrustBadges';
 const meta = {
   title: 'Components/TrustBadges',
   component: TrustBadges,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

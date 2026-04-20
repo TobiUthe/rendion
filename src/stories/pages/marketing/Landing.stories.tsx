@@ -9,7 +9,6 @@ import { CTABanner } from '@/components/landing/CTABanner';
 
 const meta = {
   title: 'Pages/Marketing/Landing',
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

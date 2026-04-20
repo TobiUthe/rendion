@@ -4,7 +4,6 @@ import { HeroSection } from '@/components/landing/HeroSection';
 const meta = {
   title: 'Comprehensive Components/HeroSection',
   component: HeroSection,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { HEADINGS, BODY } from "@/lib/design-tokens";
 
 interface PageHeaderProps {
   title: string;
@@ -23,7 +25,7 @@ export function PageHeader({
       {backLink && (
         <Link
           href={backLink.href}
-          className="mb-3 inline-flex items-center gap-1.5 text-xs-plus font-medium text-neutral-500 transition hover:text-neutral-700"
+          className={cn(BODY.navLink, "mb-3 inline-flex items-center gap-1.5 transition hover:text-stone-700")}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {backLink.label}
@@ -32,13 +34,13 @@ export function PageHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-xl sm:text-2xl font-semibold text-neutral-900">
+            <h1 className={cn(HEADINGS.h1)}>
               {title}
             </h1>
             {titleSuffix}
           </div>
           {subtitle && (
-            <p className="mt-1 text-sm-plus text-neutral-500">{subtitle}</p>
+            <p className={cn(BODY.subtitle, "mt-1")}>{subtitle}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button';
 const meta = {
   title: 'Primitives/AnimatedNumber',
   component: AnimatedNumber,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

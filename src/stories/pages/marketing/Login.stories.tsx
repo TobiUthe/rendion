@@ -4,7 +4,6 @@ import { MockAuthForm } from '@/components/auth/MockAuthForm';
 
 const meta = {
   title: 'Pages/Marketing/Login',
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

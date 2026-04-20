@@ -8,7 +8,6 @@ const result = quickCalcKapitalanlage(DEMO_INPUT)!;
 const meta = {
   title: "Comprehensive Components/Charts/TilgungsplanChart",
   component: TilgungsplanChart,
-  tags: ["autodocs"],
   parameters: { layout: "centered" },
 } satisfies Meta<typeof TilgungsplanChart>;
 

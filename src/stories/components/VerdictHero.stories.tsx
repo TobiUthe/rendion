@@ -4,7 +4,6 @@ import { VerdictHero } from '@/components/results/VerdictHero';
 const meta = {
   title: 'Components/VerdictHero',
   component: VerdictHero,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

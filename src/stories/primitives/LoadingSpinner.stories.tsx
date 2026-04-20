@@ -4,7 +4,6 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 const meta = {
   title: 'Primitives/LoadingSpinner',
   component: LoadingSpinner,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

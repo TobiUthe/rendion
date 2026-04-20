@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button';
 const meta = {
   title: 'Components/Section',
   component: Section,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

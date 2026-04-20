@@ -4,7 +4,6 @@ import { CalculatorTeaser } from '@/components/landing/CalculatorTeaser';
 const meta = {
   title: 'Components/CalculatorTeaser',
   component: CalculatorTeaser,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

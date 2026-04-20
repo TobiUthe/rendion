@@ -4,7 +4,6 @@ import { HeroWithCalculator } from "@/components/landing/HeroWithCalculator";
 const meta = {
   title: "Comprehensive Components/HeroWithCalculator",
   component: HeroWithCalculator,
-  tags: ["autodocs"],
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof HeroWithCalculator>;
 

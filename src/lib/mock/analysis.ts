@@ -1,15 +1,12 @@
+import { quickCalcKapitalanlage } from "@/lib/calculator/quick-calc";
+import { DEMO_INPUT } from "@/lib/calculator/defaults";
+import type { ProjectionRow } from "@/lib/schemas/calculator-output";
+import type { WaterfallItem } from "@/components/charts/d3/WaterfallChart";
+
 export interface MockKpi {
   label: string;
   value: string;
   color: "green" | "yellow" | "red" | null;
-}
-
-export interface MockChartDataPoint {
-  year: number;
-  immobilienwert: number;
-  eigenkapital: number;
-  restschuld: number;
-  kumulierterCashflow: number;
 }
 
 export interface MockAnalysis {
@@ -21,10 +18,37 @@ export interface MockAnalysis {
   kaufpreis: number;
   kaltmiete: number;
   eigenkapital: number;
+  kaufnebenkosten: number;
   kpis: MockKpi[];
-  projection: MockChartDataPoint[];
-  cashflowMonthly: { month: string; cashflow: number }[];
+  projection: ProjectionRow[];
+  cashflowWaterfall: WaterfallItem[];
 }
+
+const demo = quickCalcKapitalanlage(DEMO_INPUT)!;
+const firstYear = demo.projection[0];
+
+const cashflowWaterfall: WaterfallItem[] = [
+  {
+    label: "Kaltmiete",
+    value: firstYear.einnahmen / 12,
+    description: "Monatliche Mieteinnahmen",
+  },
+  {
+    label: "Nebenkosten",
+    value: -(firstYear.ausgabenOhneDarlehen / 12),
+    description: "Nicht umlagefähige Kosten",
+  },
+  {
+    label: "Annuität",
+    value: -(firstYear.annuitaet / 12),
+    description: "Kapitaldienst",
+  },
+  {
+    label: "Cashflow",
+    value: firstYear.cashflowNachSteuer / 12,
+    isTotal: true,
+  },
+];
 
 export const MOCK_ANALYSIS: MockAnalysis = {
   id: "demo-001",
@@ -32,9 +56,10 @@ export const MOCK_ANALYSIS: MockAnalysis = {
   address: "Kastanienallee 47, 10119 Berlin",
   createdAt: "2026-04-15",
   verdict: { level: "good", label: "Attraktive Rendite" },
-  kaufpreis: 380000,
-  kaltmiete: 1200,
-  eigenkapital: 95000,
+  kaufpreis: DEMO_INPUT.kaufpreis,
+  kaltmiete: DEMO_INPUT.kaltmiete,
+  eigenkapital: DEMO_INPUT.eigenkapital,
+  kaufnebenkosten: demo.nebenkostenTotal,
   kpis: [
     { label: "Bruttorendite", value: "3,79 %", color: "yellow" },
     { label: "Nettorendite", value: "2,41 %", color: "yellow" },
@@ -46,28 +71,6 @@ export const MOCK_ANALYSIS: MockAnalysis = {
     { label: "Tilgungsdauer", value: "28 Jahre", color: "yellow" },
     { label: "Vermögen 10 J.", value: "142.300 €", color: "green" },
   ],
-  projection: [
-    { year: 1, immobilienwert: 384800, eigenkapital: 99200, restschuld: 285600, kumulierterCashflow: 1776 },
-    { year: 2, immobilienwert: 389700, eigenkapital: 103600, restschuld: 286100, kumulierterCashflow: 3552 },
-    { year: 5, immobilienwert: 405000, eigenkapital: 118000, restschuld: 287000, kumulierterCashflow: 8880 },
-    { year: 10, immobilienwert: 432000, eigenkapital: 142300, restschuld: 289700, kumulierterCashflow: 17760 },
-    { year: 15, immobilienwert: 461000, eigenkapital: 172000, restschuld: 289000, kumulierterCashflow: 26640 },
-    { year: 20, immobilienwert: 492000, eigenkapital: 210000, restschuld: 282000, kumulierterCashflow: 35520 },
-    { year: 25, immobilienwert: 526000, eigenkapital: 263000, restschuld: 263000, kumulierterCashflow: 44400 },
-    { year: 30, immobilienwert: 561000, eigenkapital: 381000, restschuld: 180000, kumulierterCashflow: 53280 },
-  ],
-  cashflowMonthly: [
-    { month: "Jan", cashflow: 148 },
-    { month: "Feb", cashflow: 148 },
-    { month: "Mär", cashflow: 148 },
-    { month: "Apr", cashflow: 148 },
-    { month: "Mai", cashflow: 148 },
-    { month: "Jun", cashflow: 148 },
-    { month: "Jul", cashflow: 148 },
-    { month: "Aug", cashflow: 148 },
-    { month: "Sep", cashflow: 148 },
-    { month: "Okt", cashflow: 148 },
-    { month: "Nov", cashflow: 148 },
-    { month: "Dez", cashflow: 148 },
-  ],
+  projection: demo.projection,
+  cashflowWaterfall,
 };

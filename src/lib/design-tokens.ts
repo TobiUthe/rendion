@@ -146,6 +146,10 @@ export const BODY = {
   strong:       "font-sans text-sm font-semibold text-stone-600",
   caption:      "font-sans text-xs italic text-stone-400",
   sectionLabel: "font-sans text-xs font-semibold uppercase tracking-wider text-stone-600",
+  subtitle:     "font-sans text-sm-plus text-stone-500",
+  formLabel:    "font-sans text-sm font-medium text-stone-600",
+  navLink:      "font-sans text-xs-plus font-medium text-stone-500",
+  muted:        "font-sans text-xs text-stone-400",
 } as const;
 
 export const DATA = {
@@ -155,6 +159,7 @@ export const DATA = {
   axisLabel:       "font-mono text-xs tabular-nums text-stone-400",
   chartAnnotation: "font-sans text-xs italic text-stone-400",
   deltaBadge:      "font-mono text-sm font-medium tabular-nums",
+  parameterValue:  "font-mono text-sm font-semibold tabular-nums text-primary-600",
 } as const;
 
 // ── FOCUS & ERROR STATES ────────────────────────────────────

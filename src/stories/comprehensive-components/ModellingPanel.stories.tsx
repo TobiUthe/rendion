@@ -4,7 +4,6 @@ import { ModellingPanel } from '@/components/dashboard/ModellingPanel';
 const meta = {
   title: 'Comprehensive Components/ModellingPanel',
   component: ModellingPanel,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

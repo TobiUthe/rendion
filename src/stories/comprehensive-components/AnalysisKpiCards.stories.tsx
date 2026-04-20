@@ -5,7 +5,6 @@ import { MOCK_ANALYSIS } from '@/lib/mock/analysis';
 const meta = {
   title: 'Comprehensive Components/AnalysisKpiCards',
   component: AnalysisKpiCards,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

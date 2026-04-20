@@ -12,7 +12,6 @@ const ControlledSegmentedControl = (args: ControlledProps) => {
 const meta = {
   title: 'Primitives/SegmentedControl',
   component: ControlledSegmentedControl,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

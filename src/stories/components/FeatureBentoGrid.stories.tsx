@@ -4,7 +4,6 @@ import { FeatureBentoGrid } from '@/components/landing/FeatureBentoGrid';
 const meta = {
   title: 'Components/FeatureBentoGrid',
   component: FeatureBentoGrid,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
   },

@@ -4,9 +4,14 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Section } from "@/components/layout/Section";
 import { VerdictHero } from "@/components/results/VerdictHero";
 import { AnalysisKpiCards } from "@/components/results/AnalysisKpiCards";
-import { WealthProjectionChart } from "@/components/charts/WealthProjectionChart";
-import { CashflowBarChart } from "@/components/charts/CashflowBarChart";
+import dynamic from "next/dynamic";
+import { WaterfallChart } from "@/components/charts/d3/WaterfallChart";
 import { ModellingPanel } from "@/components/dashboard/ModellingPanel";
+
+const WealthAccumulationChart = dynamic(
+  () => import("@/components/charts/d3/WealthAccumulationChart").then((m) => m.WealthAccumulationChart),
+  { ssr: false },
+);
 import { MOCK_DASHBOARD_ANALYSES } from "@/lib/mock/dashboard";
 import { MOCK_ANALYSIS } from "@/lib/mock/analysis";
 
@@ -44,11 +49,15 @@ export default function DashboardDetailPage({ params }: DashboardDetailPageProps
             <AnalysisKpiCards kpis={analysis.kpis} />
 
             <Section title="Vermögensentwicklung 30 Jahre">
-              <WealthProjectionChart data={analysis.projection} />
+              <WealthAccumulationChart
+                projection={analysis.projection}
+                eigenkapital={analysis.eigenkapital}
+                kaufnebenkosten={analysis.kaufnebenkosten}
+              />
             </Section>
 
             <Section title="Monatlicher Cashflow">
-              <CashflowBarChart data={analysis.cashflowMonthly} />
+              <WaterfallChart items={analysis.cashflowWaterfall} />
             </Section>
           </div>
 

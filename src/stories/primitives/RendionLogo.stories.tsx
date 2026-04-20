@@ -4,7 +4,6 @@ import { RendionLogo } from '@/components/brand/RendionLogo';
 const meta = {
   title: 'Primitives/RendionLogo',
   component: RendionLogo,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },

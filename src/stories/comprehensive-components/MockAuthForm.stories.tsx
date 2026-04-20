@@ -4,7 +4,6 @@ import { MockAuthForm } from "@/components/auth/MockAuthForm";
 const meta = {
   title: "Comprehensive Components/MockAuthForm",
   component: MockAuthForm,
-  tags: ["autodocs"],
   parameters: { layout: "centered" },
 } satisfies Meta<typeof MockAuthForm>;
 

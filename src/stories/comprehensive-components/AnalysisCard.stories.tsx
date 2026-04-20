@@ -5,7 +5,6 @@ import { MOCK_DASHBOARD_ANALYSES } from '@/lib/mock/dashboard';
 const meta = {
   title: 'Comprehensive Components/AnalysisCard',
   component: AnalysisCard,
-  tags: ['autodocs'],
   parameters: {
     layout: 'centered',
   },
