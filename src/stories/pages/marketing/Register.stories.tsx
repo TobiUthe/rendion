@@ -1,6 +1,5 @@
 import type { Meta } from '@storybook/react';
-import { PublicLayout } from '@/components/layout/PublicLayout';
-import { MockAuthForm } from '@/components/auth/MockAuthForm';
+import SignupPage from '@/app/registrieren/page';
 
 const meta = {
   title: 'Pages/Marketing/Register',
@@ -11,18 +10,6 @@ const meta = {
 
 export default meta;
 
-const RegisterPageComposition = () => (
-  <PublicLayout width="full">
-    <div className="container-lg page-px py-16">
-      <MockAuthForm
-        mode="signup"
-        title="Konto erstellen"
-        submitLabel="Kostenlos registrieren"
-      />
-    </div>
-  </PublicLayout>
-);
-
 export const Default = {
-  render: RegisterPageComposition,
+  render: () => <SignupPage />,
 };

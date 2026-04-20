@@ -1,13 +1,8 @@
 import type { Meta } from '@storybook/react';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { VerdictHero } from '@/components/results/VerdictHero';
-import { AnalysisKpiCards } from '@/components/results/AnalysisKpiCards';
-import { Section } from '@/components/layout/Section';
-import { WealthAccumulationChart } from '@/components/charts/d3/WealthAccumulationChart';
-import { WaterfallChart } from '@/components/charts/d3/WaterfallChart';
-import { MOCK_ANALYSIS } from '@/lib/mock/analysis';
+import { ErgebnisView } from '@/components/results/ErgebnisView';
+import { ErgebnisEmptyState } from '@/components/results/ErgebnisEmptyState';
+import { quickCalcKapitalanlage } from '@/lib/calculator/quick-calc';
+import { mapResultToView } from '@/lib/calculator/mapResultToView';
 
 const meta = {
   title: 'Pages/Dashboard/Results',
@@ -18,48 +13,24 @@ const meta = {
 
 export default meta;
 
-const ResultsPageComposition = ({ verdict = 'good' }: { verdict?: 'good' | 'mixed' | 'risky' }) => {
-  const verdictLabels = { good: 'Attraktive Rendite', mixed: 'Gemischtes Bild', risky: 'Nicht empfohlen' };
-  return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container-lg page-px py-8">
-        <div className="mb-2 text-xs text-neutral-400">Mock-Analyse — Demo-Daten</div>
-        <PageHeader
-          title={MOCK_ANALYSIS.title}
-          subtitle={MOCK_ANALYSIS.address}
-          backLink={{ href: '/', label: 'Zurück zur Startseite' }}
-          titleSuffix={<VerdictHero level={verdict} label={verdictLabels[verdict]} />}
-        />
-        <div className="mt-6">
-          <AnalysisKpiCards kpis={MOCK_ANALYSIS.kpis} />
-        </div>
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div style={{ height: '400px' }}>
-            <Section title="Vermögensentwicklung 30 Jahre" variant="card">
-              <WealthAccumulationChart
-                projection={MOCK_ANALYSIS.projection}
-                eigenkapital={MOCK_ANALYSIS.eigenkapital}
-                kaufnebenkosten={MOCK_ANALYSIS.kaufnebenkosten}
-              />
-            </Section>
-          </div>
-          <div style={{ height: '400px' }}>
-            <Section title="Monatlicher Cashflow" variant="card">
-              <WaterfallChart items={MOCK_ANALYSIS.cashflowWaterfall} />
-            </Section>
-          </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
-  );
+// Mock input data for results
+const mockInput = {
+  kaufpreis: 500000,
+  eigenkapital: 100000,
+  darlehensDauer: 30,
+  zinsSatz: 3.5,
+  nebenkosten: 50000,
 };
+
+const mockResult = quickCalcKapitalanlage(mockInput);
+const mockView = mockResult ? mapResultToView(mockInput, mockResult) : null;
 
 export const Default = {
-  render: () => <ResultsPageComposition verdict="good" />,
+  render: () => mockView && mockResult ?
+    <ErgebnisView view={mockView} input={mockInput} kaufpreisfaktor={mockResult.kaufpreisfaktor} /> :
+    <ErgebnisEmptyState />,
 };
 
-export const MixedVerdict = {
-  render: () => <ResultsPageComposition verdict="mixed" />,
+export const Empty = {
+  render: () => <ErgebnisEmptyState />,
 };
