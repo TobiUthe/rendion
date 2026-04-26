@@ -8,9 +8,9 @@ const variantStyles = {
   primary:
     "bg-primary-600 text-white shadow-sm hover:bg-primary-700 active:scale-[0.98]",
   secondary:
-    "border border-sand-200 bg-white text-neutral-800 shadow-sm hover:bg-sand-50",
+    "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-foreground)] shadow-sm hover:bg-[var(--color-surface-elevated)]",
   ghost:
-    "text-neutral-600 hover:bg-sand-100 hover:text-neutral-800",
+    "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-foreground)]",
   destructive:
     "bg-danger-600 text-white shadow-sm hover:bg-danger-700 active:scale-[0.98]",
   gradient:

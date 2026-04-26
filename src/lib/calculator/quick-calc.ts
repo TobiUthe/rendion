@@ -1,6 +1,11 @@
-import { QUICK_DEFAULTS } from "./defaults";
+import { buildAmortizationSchedule, computeAnnuity, estimateTilgungsdauer } from "./loan";
+import { buildCashflowSeries, computeSteadyStateCashflow } from "./cashflow";
+import { buildAppreciationSeries } from "./appreciation";
+import { computeRenditen, computeVermoegen10 } from "./kpis";
 import type { QuickCalcInput } from "@/lib/schemas/calculator";
 import type { ProjectionRow, TilgungsplanRow } from "@/lib/schemas/calculator-output";
+
+const GEBAEUDEANTEIL = 0.8;
 
 export interface QuickCalcKapitalanlageResult {
   kaufpreisfaktor: number;
@@ -28,125 +33,129 @@ export interface QuickCalcKapitalanlageResult {
   tilgungsplan: TilgungsplanRow[];
 }
 
-/**
- * Investor quick-check. Returns null for invalid input; callers should gate on that.
- */
 export function quickCalcKapitalanlage(input: QuickCalcInput): QuickCalcKapitalanlageResult | null {
-  const { kaufpreis, kaltmiete, eigenkapital } = input;
+  const {
+    kaufpreis,
+    kaltmiete,
+    eigenkapital,
+    grunderwerbsteuerSatz,
+    maklerSatz,
+    notarSatz,
+    grundbuchSatz,
+    zinssatzPa,
+    tilgungPa,
+    nichtUmlagefaehig,
+    grundsteuerMonat,
+    instandhaltungsruecklageMonat,
+    verwaltungskostenMonat,
+    grenzsteuersatz,
+    afaSatz,
+    mietsteigerungPa,
+    wertsteigerungPa,
+    projectionYears,
+  } = input;
+
   if (kaufpreis <= 0 || kaltmiete <= 0) return null;
 
-  const { zinssatzPa, tilgungPa, operatingCostRate, wertsteigerungPa, nebenkostenFaktor, projectionYears } =
-    QUICK_DEFAULTS;
-
   const darlehenssumme = Math.max(0, kaufpreis - eigenkapital);
-  const annuitaetJahr = (darlehenssumme * (zinssatzPa + tilgungPa)) / 100;
+  const annuitaetJahr = computeAnnuity(darlehenssumme, zinssatzPa, tilgungPa);
   const annuitaetMonat = annuitaetJahr / 12;
-  const kostenMonat = kaltmiete * operatingCostRate;
+
+  const kostenMonat =
+    nichtUmlagefaehig + grundsteuerMonat + instandhaltungsruecklageMonat + verwaltungskostenMonat;
   const kostenJahr = kostenMonat * 12;
-
-  const cashflowMonat = kaltmiete - kostenMonat - annuitaetMonat;
-  const cashflowJahr = cashflowMonat * 12;
-
   const jahresmiete = kaltmiete * 12;
+  const nebenkostenSatz = grunderwerbsteuerSatz + maklerSatz + notarSatz + grundbuchSatz;
+  const nebenkostenTotal = (kaufpreis * nebenkostenSatz) / 100;
+
+  const amortization = buildAmortizationSchedule({
+    darlehenssumme,
+    annuitaetJahr,
+    zinssatzPa,
+    years: projectionYears,
+  });
+  const appreciation = buildAppreciationSeries(kaufpreis, wertsteigerungPa, projectionYears);
+  const cashflow = buildCashflowSeries({
+    jahresmiete,
+    kostenJahr,
+    amortization,
+    mietsteigerungPa,
+  });
+
+  const steady = computeSteadyStateCashflow({ kaltmiete, kostenMonat, annuitaetMonat });
+  const renditen = computeRenditen({
+    jahresmiete,
+    kaufpreis,
+    kostenJahr,
+    eigenkapital,
+    cashflowJahr: steady.cashflowJahr,
+    annuitaetJahr,
+  });
+  const v10 = computeVermoegen10({ amortization, cashflow, appreciation, nebenkostenTotal });
+  const tilgungsdauerJahre = estimateTilgungsdauer(darlehenssumme, annuitaetJahr, zinssatzPa);
   const kaufpreisfaktor = jahresmiete > 0 ? kaufpreis / jahresmiete : 0;
 
-  const bruttoRendite = (jahresmiete / kaufpreis) * 100;
-  const nettoRendite = ((jahresmiete - kostenJahr) / kaufpreis) * 100;
-  const capRate = ((jahresmiete - kostenJahr) / kaufpreis) * 100;
-  const eigenkapitalRendite =
-    eigenkapital > 0 ? (cashflowJahr / eigenkapital) * 100 : 0;
-  const dscr = annuitaetJahr > 0 ? (jahresmiete - kostenJahr) / annuitaetJahr : 0;
+  const afaJahr = kaufpreis * GEBAEUDEANTEIL * (afaSatz / 100);
+  const steuerSatz = grenzsteuersatz / 100;
+  const eigenkapitalNetto = kaufpreis - darlehenssumme;
 
-  const nebenkostenTotal = kaufpreis * nebenkostenFaktor;
-
-  const tilgungsplan: TilgungsplanRow[] = [];
-  const projection: ProjectionRow[] = [];
-  let restschuld = darlehenssumme;
-  let kumulativeTilgung = 0;
-  let kumulativerCashflow = 0;
-  let restschuld10 = darlehenssumme;
-
-  for (let j = 1; j <= projectionYears; j++) {
-    const zins = restschuld * (zinssatzPa / 100);
-    const tilgung = Math.min(annuitaetJahr - zins, restschuld);
-    restschuld = Math.max(0, restschuld - tilgung);
-    kumulativeTilgung += tilgung;
-    kumulativerCashflow += cashflowJahr;
-
-    const wertzuwachs = kaufpreis * (Math.pow(1 + wertsteigerungPa, j) - 1);
-    const immobilienwert = kaufpreis + wertzuwachs;
-
-    if (j === 10) restschuld10 = restschuld;
-
-    tilgungsplan.push({
-      jahr: j,
-      annuitaet: annuitaetJahr,
-      zinsanteil: zins,
-      tilgungsanteil: tilgung,
-      sondertilgung: 0,
-      restschuld,
-    });
-
-    projection.push({
-      jahr: j,
-      einnahmen: jahresmiete,
+  const projection: ProjectionRow[] = amortization.map((a, i) => {
+    const app = appreciation[i];
+    const cf = cashflow[i];
+    const steuerersparnis = Math.max(0, (a.zins + afaJahr) * steuerSatz);
+    return {
+      jahr: a.jahr,
+      einnahmen: cf.jahresmiete,
       ausgabenOhneDarlehen: kostenJahr,
-      annuitaet: annuitaetJahr,
-      cashflowVorSteuer: cashflowJahr,
-      cashflowNachSteuer: cashflowJahr,
-      steuerersparnis: 0,
-      kumulierterCashflow: kumulativerCashflow,
-      immobilienwert,
-      restschuld,
-      eigenkapitalAufbau: immobilienwert - restschuld - (kaufpreis - darlehenssumme),
-      getilgterBetrag: kumulativeTilgung,
-      wertzuwachs,
-    });
-  }
+      annuitaet: a.annuitaetGezahlt,
+      cashflowVorSteuer: cf.cashflowJahr,
+      cashflowNachSteuer: cf.cashflowJahr + steuerersparnis,
+      steuerersparnis,
+      kumulierterCashflow: cf.kumulierterCashflow,
+      immobilienwert: app.immobilienwert,
+      restschuld: a.restschuld,
+      eigenkapitalAufbau: app.immobilienwert - a.restschuld - eigenkapitalNetto,
+      getilgterBetrag: a.kumulativeTilgung,
+      wertzuwachs: app.wertzuwachs,
+    };
+  });
 
-  const wertsteigerung10 = kaufpreis * (Math.pow(1 + wertsteigerungPa, 10) - 1);
-  const immobilienwert10 = kaufpreis + wertsteigerung10;
-  const kumulativerCashflow10 = cashflowJahr * 10;
-  const vermoegen10 = immobilienwert10 - restschuld10 + kumulativerCashflow10 - nebenkostenTotal;
+  const tilgungsplan: TilgungsplanRow[] = amortization.map((a) => ({
+    jahr: a.jahr,
+    annuitaet: a.annuitaetGezahlt,
+    zinsanteil: a.zins,
+    tilgungsanteil: a.tilgung,
+    sondertilgung: 0,
+    restschuld: a.restschuld,
+  }));
 
-  // Tilgungsdauer: years until restschuld reaches 0 under current annuity.
-  const tilgungsdauerJahre = estimateTilgungsdauer(darlehenssumme, annuitaetJahr, zinssatzPa);
+  const kumulativeTilgung = amortization[amortization.length - 1]?.kumulativeTilgung ?? 0;
+  const kumulativerCashflow = cashflow[cashflow.length - 1]?.kumulierterCashflow ?? 0;
+  const wertsteigerung = appreciation[Math.min(10, appreciation.length) - 1]?.wertzuwachs ?? 0;
 
   return {
     kaufpreisfaktor,
     jahresmiete,
-    cashflowMonat,
-    cashflowJahr,
+    cashflowMonat: steady.cashflowMonat,
+    cashflowJahr: steady.cashflowJahr,
     annuitaetJahr,
     annuitaetMonat,
     kostenMonat,
-    vermoegen10,
+    vermoegen10: v10.vermoegen10,
     kumulativeTilgung,
     kumulativerCashflow,
-    wertsteigerung: wertsteigerung10,
-    immobilienwert10,
-    restschuld10,
+    wertsteigerung,
+    immobilienwert10: v10.immobilienwert10,
+    restschuld10: v10.restschuld10,
     darlehenssumme,
     nebenkostenTotal,
-    bruttoRendite,
-    nettoRendite,
-    eigenkapitalRendite,
-    capRate,
-    dscr,
+    bruttoRendite: renditen.bruttoRendite,
+    nettoRendite: renditen.nettoRendite,
+    eigenkapitalRendite: renditen.eigenkapitalRendite,
+    capRate: renditen.capRate,
+    dscr: renditen.dscr,
     tilgungsdauerJahre,
     projection,
     tilgungsplan,
   };
-}
-
-function estimateTilgungsdauer(darlehen: number, annuitaetJahr: number, zinssatzPa: number): number {
-  if (darlehen <= 0 || annuitaetJahr <= 0) return 0;
-  let rest = darlehen;
-  for (let j = 1; j <= 60; j++) {
-    const zins = rest * (zinssatzPa / 100);
-    const tilgung = Math.min(annuitaetJahr - zins, rest);
-    rest -= tilgung;
-    if (rest <= 0) return j;
-  }
-  return 60;
 }

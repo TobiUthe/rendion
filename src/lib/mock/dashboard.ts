@@ -7,8 +7,8 @@ export interface DashboardAnalysisSummary {
   kaufpreis: number;
   kaltmiete: number;
   eigenkapital: number;
-  bruttorendite: string;
-  cashflowMonat: string;
+  bruttorenditePct: number;
+  cashflowMonat: number;
 }
 
 export const MOCK_DASHBOARD_ANALYSES: DashboardAnalysisSummary[] = [
@@ -21,8 +21,8 @@ export const MOCK_DASHBOARD_ANALYSES: DashboardAnalysisSummary[] = [
     kaufpreis: 380000,
     kaltmiete: 1200,
     eigenkapital: 95000,
-    bruttorendite: "3,79 %",
-    cashflowMonat: "+148 €",
+    bruttorenditePct: 3.79,
+    cashflowMonat: 148,
   },
   {
     id: "demo-002",
@@ -33,8 +33,8 @@ export const MOCK_DASHBOARD_ANALYSES: DashboardAnalysisSummary[] = [
     kaufpreis: 680000,
     kaltmiete: 1850,
     eigenkapital: 170000,
-    bruttorendite: "3,26 %",
-    cashflowMonat: "-82 €",
+    bruttorenditePct: 3.26,
+    cashflowMonat: -82,
   },
   {
     id: "demo-003",
@@ -45,7 +45,7 @@ export const MOCK_DASHBOARD_ANALYSES: DashboardAnalysisSummary[] = [
     kaufpreis: 420000,
     kaltmiete: 2400,
     eigenkapital: 105000,
-    bruttorendite: "6,86 %",
-    cashflowMonat: "+612 €",
+    bruttorenditePct: 6.86,
+    cashflowMonat: 612,
   },
 ];

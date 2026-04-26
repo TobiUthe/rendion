@@ -23,12 +23,12 @@ export function KpiCard({
     green: "bg-success-500/5",
     yellow: "bg-warning-500/5",
     red: "bg-danger-500/5",
-    neutral: "bg-neutral-50",
+    neutral: "bg-[var(--color-surface-elevated)]",
   };
 
   return (
     <div
-      className={`rounded-lg border-t border-r border-b border-sand-200/60 border-l-[3px] p-5 shadow-sm transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md ${borderColors[color]} ${bgColors[color]}`}
+      className={`rounded-lg border-t border-r border-b border-[var(--color-border)]/60 border-l-[3px] p-5 shadow-sm transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md ${borderColors[color]} ${bgColors[color]}`}
     >
       <p className={cn(BODY.sectionLabel)}>
         {label}

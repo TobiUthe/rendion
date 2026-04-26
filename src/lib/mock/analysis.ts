@@ -1,4 +1,5 @@
 import { quickCalcKapitalanlage } from "@/lib/calculator/quick-calc";
+import { mapResultToView, type WaterfallMeta } from "@/lib/calculator/mapResultToView";
 import { DEMO_INPUT } from "@/lib/calculator/defaults";
 import type { ProjectionRow } from "@/lib/schemas/calculator-output";
 import type { WaterfallItem } from "@/components/charts/d3/WaterfallChart";
@@ -22,33 +23,13 @@ export interface MockAnalysis {
   kpis: MockKpi[];
   projection: ProjectionRow[];
   cashflowWaterfall: WaterfallItem[];
+  cashflowWaterfallMeta: WaterfallMeta;
 }
 
 const demo = quickCalcKapitalanlage(DEMO_INPUT)!;
-const firstYear = demo.projection[0];
-
-const cashflowWaterfall: WaterfallItem[] = [
-  {
-    label: "Kaltmiete",
-    value: firstYear.einnahmen / 12,
-    description: "Monatliche Mieteinnahmen",
-  },
-  {
-    label: "Nebenkosten",
-    value: -(firstYear.ausgabenOhneDarlehen / 12),
-    description: "Nicht umlagefähige Kosten",
-  },
-  {
-    label: "Annuität",
-    value: -(firstYear.annuitaet / 12),
-    description: "Kapitaldienst",
-  },
-  {
-    label: "Cashflow",
-    value: firstYear.cashflowNachSteuer / 12,
-    isTotal: true,
-  },
-];
+const demoView = mapResultToView(DEMO_INPUT, demo);
+const cashflowWaterfall = demoView.waterfall;
+const cashflowWaterfallMeta = demoView.waterfallMeta;
 
 export const MOCK_ANALYSIS: MockAnalysis = {
   id: "demo-001",
@@ -73,4 +54,5 @@ export const MOCK_ANALYSIS: MockAnalysis = {
   ],
   projection: demo.projection,
   cashflowWaterfall,
+  cashflowWaterfallMeta,
 };

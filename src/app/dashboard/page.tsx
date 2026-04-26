@@ -1,35 +1,31 @@
-import Link from "next/link";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { AnalysisCard } from "@/components/dashboard/AnalysisCard";
+import { AnalysesList } from "@/components/dashboard/home/AnalysesList";
 import { MOCK_DASHBOARD_ANALYSES } from "@/lib/mock/dashboard";
 
 export default function DashboardPage() {
-  return (
-    <div className="min-h-screen bg-[var(--color-background)] flex flex-col">
-      <Header />
-      <main className="flex-1 container-lg page-px py-8">
-        <PageHeader
-          title="Meine Analysen"
-          subtitle={`${MOCK_DASHBOARD_ANALYSES.length} gespeicherte Analysen`}
-          actions={
-            <Link href="/ergebnis">
-              <Button variant="primary" size="md">
-                Neue Analyse
-              </Button>
-            </Link>
-          }
-        />
+  const analyses = MOCK_DASHBOARD_ANALYSES;
+  const count = analyses.length;
 
-        <div className="mt-6 flex flex-col gap-4">
-          {MOCK_DASHBOARD_ANALYSES.map((analysis) => (
-            <AnalysisCard key={analysis.id} analysis={analysis} />
-          ))}
-        </div>
-      </main>
-      <Footer />
+  return (
+    <div className="container-lg page-px py-8 sm:py-10">
+      <PageHeader
+        title="Übersicht"
+        subtitle={
+          count === 1 ? "1 gespeicherte Analyse" : `${count} gespeicherte Analysen`
+        }
+        actions={
+          <Button href="/" variant="primary" size="md">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Neue Analyse
+          </Button>
+        }
+      />
+
+      <div className="mt-8">
+        <AnalysesList analyses={analyses} />
+      </div>
     </div>
   );
 }

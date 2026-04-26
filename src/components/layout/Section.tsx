@@ -47,7 +47,7 @@ export function Section({
     <div
       id={id}
       className={cn(
-        isCard && "rounded-xl border border-sand-200 bg-white shadow-sm",
+        isCard && "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm",
         className
       )}
     >
@@ -55,7 +55,7 @@ export function Section({
         <div
           className={cn(
             "flex flex-wrap items-start justify-between gap-3",
-            isCard ? "border-b border-sand-100 px-6 py-4" : "pb-4"
+            isCard ? "border-b border-[var(--color-border-subtle)] px-6 py-4" : "pb-4"
           )}
         >
           <div>

@@ -8,15 +8,19 @@ import { ChartContainerWithDimensions } from "./ChartContainer";
 import { ChartTooltip } from "./ChartTooltip";
 import {
   CHART_COLORS,
-  formatAxisK,
-  formatCurrency,
+  formatChartTick,
+  formatChartValue,
   prefersReducedMotion,
   responsiveMargin,
   responsiveTickCount,
   responsiveFontSize,
 } from "@/lib/chart-utils";
+import { OPACITY, DASH } from "@/lib/design-tokens";
+import { useThemeTokens } from "@/lib/hooks/useThemeTokens";
 import { ANIMATION } from "@/lib/animation-config";
 import type { TilgungsplanRow } from "@/lib/schemas/calculator-output";
+import { ChartLegend, type LegendSeries } from "@/components/charts/ChartLegend";
+import { useToggleLegend } from "@/components/charts/useLegendState";
 
 interface D3TilgungsplanChartProps {
   tilgungsplan: TilgungsplanRow[];
@@ -27,9 +31,20 @@ const SERIES = [
   { key: "tilgungsanteil" as const, label: "Tilgungsanteil", color: CHART_COLORS.primary },
 ] as const;
 
+type SeriesKey = (typeof SERIES)[number]["key"];
+
+const LEGEND_SERIES: LegendSeries[] = SERIES.map((s) => ({
+  key: s.key,
+  label: s.label,
+  color: s.color,
+}));
+
 export function TilgungsplanChart({ tilgungsplan }: D3TilgungsplanChartProps) {
   const { tooltipProps, show, hide } = useChartTooltip();
   const uid = useId().replace(/:/g, "");
+  const legend = useToggleLegend();
+  const typedHiddenKeys = legend.hiddenKeys as Set<SeriesKey>;
+  const tokens = useThemeTokens();
 
   return (
     <div className="relative">
@@ -40,25 +55,34 @@ export function TilgungsplanChart({ tilgungsplan }: D3TilgungsplanChartProps) {
             width={width}
             height={height}
             uid={uid}
+            hiddenKeys={typedHiddenKeys}
+            tokens={tokens}
             onHover={(evt, row) => {
+              const visibleSeries = SERIES.filter((s) => !typedHiddenKeys.has(s.key));
               show(
                 evt.clientX,
                 evt.clientY,
                 <div>
-                  <div className="mb-1 font-medium">Jahr {row.jahr}</div>
-                  <div style={{ color: CHART_COLORS.warning }}>
-                    Zinsanteil: {formatCurrency(row.zinsanteil)}
+                  <div className="mb-1 font-medium text-[var(--color-foreground)]">
+                    Jahr {row.jahr}
                   </div>
-                  <div style={{ color: CHART_COLORS.primary }}>
-                    Tilgungsanteil: {formatCurrency(row.tilgungsanteil)}
-                  </div>
-                  {row.sondertilgung > 0 && (
-                    <div style={{ color: CHART_COLORS.positive }}>
-                      Sondertilgung: {formatCurrency(row.sondertilgung)}
+                  {visibleSeries.some((s) => s.key === "zinsanteil") && (
+                    <div style={{ color: CHART_COLORS.warning }}>
+                      Zinsanteil: {formatChartValue(row.zinsanteil)}
                     </div>
                   )}
-                  <div style={{ color: CHART_COLORS.muted }}>
-                    Restschuld: {formatCurrency(row.restschuld)}
+                  {visibleSeries.some((s) => s.key === "tilgungsanteil") && (
+                    <div style={{ color: CHART_COLORS.primary }}>
+                      Tilgungsanteil: {formatChartValue(row.tilgungsanteil)}
+                    </div>
+                  )}
+                  {row.sondertilgung > 0 && (
+                    <div style={{ color: CHART_COLORS.positive }}>
+                      Sondertilgung: {formatChartValue(row.sondertilgung)}
+                    </div>
+                  )}
+                  <div style={{ color: tokens.textSecondary }}>
+                    Restschuld: {formatChartValue(row.restschuld)}
                   </div>
                 </div>,
               );
@@ -68,6 +92,14 @@ export function TilgungsplanChart({ tilgungsplan }: D3TilgungsplanChartProps) {
         )}
       </ChartContainerWithDimensions>
       <ChartTooltip tooltipProps={tooltipProps} />
+      <ChartLegend
+        mode="toggle"
+        series={LEGEND_SERIES}
+        hiddenKeys={legend.hiddenKeys as Set<string>}
+        onToggle={legend.onToggle}
+        className="mt-3"
+        ariaLabel="Tilgungsplan-Legende — Datenreihe ein-/ausblenden"
+      />
     </div>
   );
 }
@@ -77,11 +109,13 @@ interface SVGProps {
   width: number;
   height: number;
   uid: string;
+  hiddenKeys: Set<SeriesKey>;
+  tokens: ReturnType<typeof useThemeTokens>;
   onHover: (evt: MouseEvent, row: TilgungsplanRow) => void;
   onLeave: () => void;
 }
 
-function D3TilgungsplanSVG({ data, width, height, uid, onHover, onLeave }: SVGProps) {
+function D3TilgungsplanSVG({ data, width, height, uid, hiddenKeys, tokens, onHover, onLeave }: SVGProps) {
   const margin = responsiveMargin(width);
   const fontSize = responsiveFontSize(width);
 
@@ -98,67 +132,93 @@ function D3TilgungsplanSVG({ data, width, height, uid, onHover, onLeave }: SVGPr
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
+      const visibleSeries = SERIES.filter((s) => !hiddenKeys.has(s.key));
+      const visibleKeys = visibleSeries.map((s) => s.key);
+
       const x = d3
         .scaleBand()
         .domain(data.map((d) => String(d.jahr)))
         .range([0, w])
         .padding(0.2);
 
-      const maxY = d3.max(data, (d) => d.zinsanteil + d.tilgungsanteil) ?? 0;
+      const maxY =
+        d3.max(data, (d) => {
+          return visibleKeys.reduce((sum, k) => sum + (d[k as SeriesKey] ?? 0), 0);
+        }) ?? 0;
       const y = d3.scaleLinear().domain([0, maxY * 1.1]).nice().range([h, 0]);
 
+      // Grid lines using theme tokens and DASH pattern
       g.append("g")
         .call(d3.axisLeft(y).tickSize(-w).tickFormat(() => ""))
-        .call((sel) => sel.selectAll("line").attr("stroke", CHART_COLORS.grid).attr("stroke-opacity", 0.5))
+        .call((sel) =>
+          sel
+            .selectAll("line")
+            .attr("stroke", tokens.grid)
+            .attr("stroke-dasharray", DASH.grid)
+            .attr("stroke-opacity", OPACITY.chartMuted),
+        )
         .call((sel) => sel.select(".domain").remove());
 
       const reduced = prefersReducedMotion();
 
-      const stack = d3
-        .stack<TilgungsplanRow>()
-        .keys(SERIES.map((s) => s.key))
-        .order(d3.stackOrderNone)
-        .offset(d3.stackOffsetNone);
+      if (visibleKeys.length > 0) {
+        const stack = d3
+          .stack<TilgungsplanRow>()
+          .keys(visibleKeys)
+          .order(d3.stackOrderNone)
+          .offset(d3.stackOffsetNone);
 
-      const stacked = stack(data);
+        const stacked = stack(data);
 
-      stacked.forEach((layer, i) => {
-        g.selectAll(`.bar-${SERIES[i].key}`)
-          .data(layer)
-          .join("rect")
-          .attr("class", `bar-${SERIES[i].key}`)
-          .attr("x", (d) => x(String(d.data.jahr)) ?? 0)
-          .attr("width", x.bandwidth())
-          .attr("rx", 1)
-          .attr("fill", SERIES[i].color)
-          .attr("fill-opacity", 0.8)
-          .attr("y", reduced ? (d) => y(d[1]) : y(0))
-          .attr("height", reduced ? (d) => y(d[0]) - y(d[1]) : 0)
-          .call((sel) => {
-            if (!reduced) {
-              sel
-                .transition()
-                .duration(ANIMATION.duration)
-                .ease(d3.easeCubicOut)
-                .delay((_, idx) => idx * ANIMATION.staggerDelay)
-                .attr("y", (d) => y(d[1]))
-                .attr("height", (d) => y(d[0]) - y(d[1]));
-            }
-          });
-      });
+        stacked.forEach((layer, i) => {
+          const seriesInfo = visibleSeries[i];
+          if (!seriesInfo) return;
+          g.selectAll(`.bar-${seriesInfo.key}-${uid}`)
+            .data(layer)
+            .join("rect")
+            .attr("class", `bar-${seriesInfo.key}-${uid}`)
+            .attr("x", (d) => x(String(d.data.jahr)) ?? 0)
+            .attr("width", x.bandwidth())
+            .attr("rx", 2)
+            .attr("fill", seriesInfo.color)
+            .attr("fill-opacity", OPACITY.chartNormal)
+            .attr("y", reduced ? (d) => y(d[1]) : y(0))
+            .attr("height", reduced ? (d) => y(d[0]) - y(d[1]) : 0)
+            .call((sel) => {
+              if (!reduced) {
+                sel
+                  .transition()
+                  .duration(ANIMATION.duration)
+                  .ease(d3.easeCubicOut)
+                  .delay((_, idx) => idx * ANIMATION.staggerDelay)
+                  .attr("y", (d) => y(d[1]))
+                  .attr("height", (d) => y(d[0]) - y(d[1]));
+              }
+            });
+        });
+      }
 
       const tickValues = data.filter((_, i) => i % 5 === 0).map((d) => String(d.jahr));
       g.append("g")
         .attr("transform", `translate(0,${h})`)
         .call(d3.axisBottom(x).tickValues(tickValues))
         .call((sel) => sel.select(".domain").remove())
-        .call((sel) => sel.selectAll("text").attr("fill", CHART_COLORS.axis).style("font-size", `${fontSize}px`))
+        .call((sel) =>
+          sel.selectAll("text").attr("fill", tokens.axis).style("font-size", `${fontSize}px`),
+        )
         .call((sel) => sel.selectAll(".tick line").remove());
 
       g.append("g")
-        .call(d3.axisLeft(y).ticks(responsiveTickCount(width, 120)).tickFormat((d) => formatAxisK(d as number)))
+        .call(
+          d3
+            .axisLeft(y)
+            .ticks(responsiveTickCount(width, 120))
+            .tickFormat((d) => formatChartTick(d as number)),
+        )
         .call((sel) => sel.select(".domain").remove())
-        .call((sel) => sel.selectAll("text").attr("fill", CHART_COLORS.axis).style("font-size", `${fontSize}px`))
+        .call((sel) =>
+          sel.selectAll("text").attr("fill", tokens.axis).style("font-size", `${fontSize}px`),
+        )
         .call((sel) => sel.selectAll(".tick line").remove());
 
       g.append("rect")
@@ -174,22 +234,16 @@ function D3TilgungsplanSVG({ data, width, height, uid, onHover, onLeave }: SVGPr
           if (row) onHover(event, row);
         })
         .on("mouseleave", () => onLeave());
-
-      const legend = g.append("g").attr("transform", `translate(${Math.max(0, w - 200)}, -10)`);
-
-      SERIES.forEach((s, i) => {
-        const lg = legend.append("g").attr("transform", `translate(${i * 110}, 0)`);
-        lg.append("circle").attr("r", 4).attr("fill", s.color);
-        lg.append("text")
-          .attr("x", 8)
-          .attr("y", 4)
-          .text(s.label)
-          .attr("fill", CHART_COLORS.axis)
-          .style("font-size", `${fontSize}px`);
-      });
     },
-    [data, width, height, uid],
+    // tokens added to dependency array so SVG re-renders on theme change
+    [data, width, height, uid, hiddenKeys, tokens],
   );
 
-  return <svg ref={svgRef} role="img" aria-label="Diagramm: Tilgungsverlauf" />;
+  // Compose a meaningful aria-label
+  const lastRow = data[data.length - 1];
+  const ariaLabel = lastRow
+    ? `Tilgungsverlauf über ${lastRow.jahr} Jahre — Restschuld am Ende: ${formatChartValue(lastRow.restschuld)}`
+    : "Diagramm: Tilgungsverlauf";
+
+  return <svg ref={svgRef} role="img" aria-label={ariaLabel} />;
 }

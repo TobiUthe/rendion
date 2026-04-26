@@ -321,3 +321,76 @@ export const BRAND = {
   primaryDark: PALETTES.steel[800],
   logo:        PALETTES.steel[600],
 } as const;
+
+// ── OPACITY ────────────────────────────────────────────────
+export const OPACITY = {
+  chartInactive: 0.25,
+  chartMuted:    0.5,
+  chartNormal:   0.85,
+  chartActive:   1,
+  disabled:      0.5,
+  overlay:       0.6,
+} as const;
+
+// ── DASH PATTERNS ─────────────────────────────────────────
+export const DASH = {
+  grid:       "3 3",
+  connector:  "4 3",
+  projection: "2 4",
+} as const;
+
+// ── MOTION ────────────────────────────────────────────────
+export const MOTION = {
+  durFast:    150,
+  durBase:    200,
+  durSlow:    300,
+  easeSpring: "cubic-bezier(0.22, 1, 0.36, 1)",
+  easeOut:    "cubic-bezier(0.16, 1, 0.3, 1)",
+} as const;
+
+// ── INPUT SHAPE (single source of truth for input geometry) ─
+export const INPUT_SHAPE = {
+  height:        "h-11",
+  radius:        "rounded-lg",
+  paddingX:      "px-3",
+  text:          "text-base",
+  borderDefault: "border-[var(--color-border)]",
+  background:    "bg-[var(--color-surface)]",
+  textColor:     "text-[var(--color-foreground)]",
+  placeholder:   "placeholder:text-[var(--color-text-tertiary)]",
+} as const;
+
+// Compose the full base class — every input primitive uses this.
+// (Replace existing INPUTS.base usage in PR 2; for now, both coexist.)
+export const INPUT_BASE = `${INPUT_SHAPE.height} w-full ${INPUT_SHAPE.radius} border ${INPUT_SHAPE.borderDefault} ${INPUT_SHAPE.background} ${INPUT_SHAPE.paddingX} ${INPUT_SHAPE.text} ${INPUT_SHAPE.textColor} shadow-sm transition-colors ${INPUT_SHAPE.placeholder}`;
+
+// ── STATES ────────────────────────────────────────────────
+// Focus is a single border-color change — no ring, no halo, no shape shift.
+// Matches macOS/iOS form input behavior. Wrappers use focus-within so prefix/
+// suffix interactions also light up the field.
+export const STATES = {
+  focus:       "focus-within:border-primary-500 focus-within:outline-none",
+  focusError:  "focus-within:border-danger-500 focus-within:outline-none",
+  invalid:     "border-danger-500",
+  disabled:    "opacity-50 cursor-not-allowed",
+  readonly:    "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]",
+  helperText:  "text-xs text-[var(--color-text-secondary)]",
+  errorText:   "text-xs text-danger-600",
+} as const;
+
+// ── Z-INDEX ───────────────────────────────────────────────
+export const Z_INDEX = {
+  base:     0,
+  sticky:   10,
+  header:   20,
+  dropdown: 30,
+  sheet:    40,
+  modal:    50,
+  tooltip:  60,
+  toast:    70,
+} as const;
+
+// ── SKELETON ──────────────────────────────────────────────
+export const SKELETON = {
+  base: "bg-[var(--color-skeleton)] animate-pulse rounded-md",
+} as const;

@@ -31,7 +31,7 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3">
         <Link
           href="/"
-          className="flex items-center gap-2 text-[17px] font-semibold tracking-tight text-neutral-900"
+          className="flex items-center gap-2 text-[17px] font-semibold tracking-tight text-[var(--color-foreground)]"
         >
           <RendionLogo size={28} />
           <span>rendion</span>
@@ -45,7 +45,7 @@ export function Header() {
             <>
               <Link
                 href="/dashboard"
-                className="rounded-full px-4 py-2.5 text-sm-plus font-medium text-neutral-500 transition hover:text-neutral-900"
+                className="rounded-full px-4 py-2.5 text-sm-plus font-medium text-[var(--color-text-secondary)] transition hover:text-[var(--color-foreground)]"
               >
                 Dashboard
               </Link>
@@ -61,7 +61,7 @@ export function Header() {
             <>
               <Link
                 href="/anmelden"
-                className="rounded-full px-4 py-2.5 text-sm-plus font-medium text-neutral-500 transition hover:text-neutral-900"
+                className="rounded-full px-4 py-2.5 text-sm-plus font-medium text-[var(--color-text-secondary)] transition hover:text-[var(--color-foreground)]"
               >
                 Anmelden
               </Link>
@@ -80,7 +80,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
-            className="rounded-lg p-2 text-neutral-600 transition hover:text-neutral-900"
+            className="rounded-lg p-2 text-[var(--color-text-secondary)] transition hover:text-[var(--color-foreground)]"
             aria-label="Menü öffnen"
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
@@ -102,14 +102,14 @@ export function Header() {
               <Link
                 href="/dashboard"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-900"
+                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-foreground)]"
               >
                 Dashboard
               </Link>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-900"
+                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-foreground)]"
               >
                 Abmelden
               </button>
@@ -119,14 +119,14 @@ export function Header() {
               <Link
                 href="/anmelden"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-900"
+                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-foreground)]"
               >
                 Anmelden
               </Link>
               <Link
                 href="/registrieren"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-neutral-600 transition hover:bg-neutral-50 hover:text-neutral-900"
+                className="rounded-lg px-3 py-2.5 text-left text-sm-plus font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-foreground)]"
               >
                 Konto erstellen
               </Link>

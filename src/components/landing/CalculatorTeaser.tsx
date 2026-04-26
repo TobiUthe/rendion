@@ -33,14 +33,14 @@ export function CalculatorTeaser() {
       : null;
 
   return (
-    <div className="rounded-xl border border-sand-200 bg-white shadow-sm px-6 py-8 max-w-md mx-auto">
-      <h3 className="font-display text-xl font-semibold text-neutral-900 mb-4">
+    <div className="rounded-xl border border-sand-200 bg-[var(--color-surface)] shadow-sm px-6 py-8 max-w-md mx-auto">
+      <h3 className="font-display text-xl font-semibold text-[var(--color-foreground)] mb-4">
         Rendite schnell berechnen
       </h3>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-neutral-600 mb-1">
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
             Kaufpreis (€)
           </label>
           <input
@@ -51,12 +51,12 @@ export function CalculatorTeaser() {
               setHasError(false);
             }}
             placeholder="380000"
-            className="w-full font-mono tabular-nums transition-colors duration-150 rounded-lg border border-sand-200 bg-white px-3 py-2 text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
+            className="w-full font-mono tabular-nums transition-colors duration-150 rounded-lg border border-sand-200 bg-[var(--color-surface)] px-3 py-2 text-base text-[var(--color-foreground)] placeholder:text-[var(--color-text-tertiary)] focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-neutral-600 mb-1">
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
             Monatliche Kaltmiete (€)
           </label>
           <input
@@ -67,12 +67,12 @@ export function CalculatorTeaser() {
               setHasError(false);
             }}
             placeholder="1200"
-            className="w-full font-mono tabular-nums transition-colors duration-150 rounded-lg border border-sand-200 bg-white px-3 py-2 text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
+            className="w-full font-mono tabular-nums transition-colors duration-150 rounded-lg border border-sand-200 bg-[var(--color-surface)] px-3 py-2 text-base text-[var(--color-foreground)] placeholder:text-[var(--color-text-tertiary)] focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-neutral-600 mb-1">
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
             Eigenkapital (€)
           </label>
           <input
@@ -83,7 +83,7 @@ export function CalculatorTeaser() {
               setHasError(false);
             }}
             placeholder="95000"
-            className="w-full font-mono tabular-nums transition-colors duration-150 rounded-lg border border-sand-200 bg-white px-3 py-2 text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
+            className="w-full font-mono tabular-nums transition-colors duration-150 rounded-lg border border-sand-200 bg-[var(--color-surface)] px-3 py-2 text-base text-[var(--color-foreground)] placeholder:text-[var(--color-text-tertiary)] focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
           />
         </div>
       </div>
@@ -96,7 +96,7 @@ export function CalculatorTeaser() {
 
       {bruttorendite && (
         <div className="mt-4 rounded-lg border border-sand-200 bg-sand-50 px-4 py-3">
-          <p className="text-xs text-neutral-500">Geschätzte Bruttorendite</p>
+          <p className="text-xs text-[var(--color-text-secondary)]">Geschätzte Bruttorendite</p>
           <p className="font-mono text-lg font-bold text-primary-600 tabular-nums">
             {bruttorendite.replace(".", ",")} %
           </p>
@@ -112,7 +112,7 @@ export function CalculatorTeaser() {
         Rendite berechnen
       </Button>
 
-      <p className="text-xs text-neutral-400 text-center mt-4">
+      <p className="text-xs text-[var(--color-text-tertiary)] text-center mt-4">
         Kostenlos · Keine Anmeldung erforderlich
       </p>
     </div>

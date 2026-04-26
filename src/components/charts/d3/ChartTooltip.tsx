@@ -11,7 +11,7 @@ export function ChartTooltip({ tooltipProps }: ChartTooltipProps) {
 
   return (
     <div
-      className="pointer-events-none fixed z-[var(--z-tooltip)] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm shadow-lg"
+      className="pointer-events-none fixed z-[var(--z-tooltip)] max-w-[calc(100vw-1.5rem)] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[10px] sm:text-sm shadow-lg"
       style={{
         left: tooltipProps.x,
         top: tooltipProps.y,

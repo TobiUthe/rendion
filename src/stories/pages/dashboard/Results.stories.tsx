@@ -3,6 +3,7 @@ import { ErgebnisView } from '@/components/results/ErgebnisView';
 import { ErgebnisEmptyState } from '@/components/results/ErgebnisEmptyState';
 import { quickCalcKapitalanlage } from '@/lib/calculator/quick-calc';
 import { mapResultToView } from '@/lib/calculator/mapResultToView';
+import { withDefaults } from '@/lib/calculator/defaults';
 
 const meta = {
   title: 'Pages/Dashboard/Results',
@@ -13,21 +14,18 @@ const meta = {
 
 export default meta;
 
-// Mock input data for results
-const mockInput = {
+const mockInput = withDefaults({
   kaufpreis: 500000,
   eigenkapital: 100000,
-  darlehensDauer: 30,
-  zinsSatz: 3.5,
-  nebenkosten: 50000,
-};
+  kaltmiete: 2500,
+});
 
 const mockResult = quickCalcKapitalanlage(mockInput);
 const mockView = mockResult ? mapResultToView(mockInput, mockResult) : null;
 
 export const Default = {
-  render: () => mockView && mockResult ?
-    <ErgebnisView view={mockView} input={mockInput} kaufpreisfaktor={mockResult.kaufpreisfaktor} /> :
+  render: () => mockView ?
+    <ErgebnisView view={mockView} input={mockInput} /> :
     <ErgebnisEmptyState />,
 };
 

@@ -37,9 +37,9 @@ export function MockAuthForm({ mode, title, submitLabel, redirectTo = "/dashboar
   return (
     <div className="mx-auto w-full max-w-md">
       <RouteProgressBar active={pending} />
-      <div className="rounded-xl border border-sand-200 bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="font-display text-2xl font-bold leading-snug text-neutral-900">{title}</h1>
-        <p className="mt-2 text-sm text-neutral-500">
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm sm:p-8">
+        <h1 className="font-display text-2xl font-bold leading-snug text-[var(--color-foreground)]">{title}</h1>
+        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
           Demo-Modus: Jede Eingabe wird akzeptiert. Du landest direkt im Dashboard.
         </p>
 
@@ -70,7 +70,7 @@ export function MockAuthForm({ mode, title, submitLabel, redirectTo = "/dashboar
           <Link href={altHref} className="text-primary-600 underline-offset-2 hover:underline">
             {altLabel}
           </Link>
-          <Link href="/" className="text-neutral-500 underline-offset-2 hover:underline">
+          <Link href="/" className="text-[var(--color-text-secondary)] underline-offset-2 hover:underline">
             Startseite
           </Link>
         </div>

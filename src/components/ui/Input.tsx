@@ -1,5 +1,8 @@
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from "react";
+"use client";
+
+import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { INPUT_BASE, STATES, BODY } from "@/lib/design-tokens";
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size" | "prefix"> {
   label?: string;
@@ -10,10 +13,19 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size" 
   wrapperClassName?: string;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, suffix, prefix, error, helperText, className, wrapperClassName, id, ...rest },
+export function Input({
+  label,
+  suffix,
+  prefix,
+  error,
+  helperText,
+  className,
+  wrapperClassName,
+  id,
+  disabled,
   ref,
-) {
+  ...rest
+}: InputProps & { ref?: React.Ref<HTMLInputElement> }) {
   const reactId = useId();
   const inputId = id ?? `input-${reactId}`;
   const describedById = error || helperText ? `${inputId}-desc` : undefined;
@@ -21,39 +33,52 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className={cn("flex flex-col gap-1.5", wrapperClassName)}>
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-neutral-700">
+        <label htmlFor={inputId} className={BODY.formLabel}>
           {label}
         </label>
       )}
       <div
         className={cn(
-          "flex items-center rounded-lg border bg-white shadow-sm transition-colors",
-          "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200/60",
-          error ? "border-danger-500" : "border-sand-200",
+          INPUT_BASE,
+          "flex items-center",
+          error ? STATES.focusError : STATES.focus,
+          error ? STATES.invalid : "",
+          disabled ? STATES.disabled : "",
         )}
       >
-        {prefix && <span className="pl-3 text-sm text-neutral-400">{prefix}</span>}
+        {prefix && (
+          <span className="shrink-0 pl-3 text-sm text-[var(--color-text-secondary)]">
+            {prefix}
+          </span>
+        )}
         <input
           ref={ref}
           id={inputId}
+          disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedById}
           className={cn(
-            "flex-1 bg-transparent px-3 py-2 font-mono text-base text-neutral-900 tabular-nums placeholder:text-neutral-400 focus:outline-none",
+            "min-w-0 flex-1 bg-transparent py-2.5 font-mono tabular-nums focus:outline-none focus-visible:outline-none",
+            prefix ? "pl-2" : "pl-3",
+            suffix ? "pr-2 text-right" : "pr-3",
             className,
           )}
           {...rest}
         />
-        {suffix && <span className="pr-3 text-sm text-neutral-500">{suffix}</span>}
+        {suffix && (
+          <span className="shrink-0 pr-3 text-sm text-[var(--color-text-secondary)]">
+            {suffix}
+          </span>
+        )}
       </div>
       {(error || helperText) && (
         <p
           id={describedById}
-          className={cn("text-xs", error ? "text-danger-600" : "text-neutral-500")}
+          className={error ? STATES.errorText : STATES.helperText}
         >
           {error ?? helperText}
         </p>
       )}
     </div>
   );
-});
+}

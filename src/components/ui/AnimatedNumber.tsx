@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatNumber } from "@/lib/format";
 
 interface AnimatedNumberProps {
   value: number;
@@ -9,7 +10,7 @@ interface AnimatedNumberProps {
   className?: string;
 }
 
-const DEFAULT_FORMAT = (n: number) => n.toLocaleString("de-DE", { maximumFractionDigits: 0 });
+const DEFAULT_FORMAT = (n: number) => formatNumber(Math.round(n), { decimals: 0 });
 
 export function AnimatedNumber({
   value,

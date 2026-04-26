@@ -223,11 +223,19 @@
   --color-foreground: #1c1e23;
   --color-surface: #FFFFFF;
   --color-surface-raised: #FFFFFF;
+  --color-surface-elevated: #fafafa;
+  --color-surface-overlay: rgba(28, 30, 35, 0.45);
+  --color-skeleton: #ededef;
+  --color-skeleton-shine: #f7f7f8;
   --color-primary-hover: #3e4b55;
   --color-text-secondary: #565a66;
   --color-text-tertiary: #82848f;
   --color-border: #ebe5db;
   --color-border-subtle: #f5f1eb;
+
+  /* ── Sidebar Widths ─────────────────────────────────────── */
+  --sidebar-collapsed: 4.25rem;
+  --sidebar-expanded: 15rem;
 
   /* ── Typography ──────────────────────────────────────────── */
   --font-sans: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -342,6 +350,10 @@
     --color-foreground: #f7f7f8;
     --color-surface: #2d3239;
     --color-surface-raised: #383c44;
+    --color-surface-elevated: #383c44;
+    --color-surface-overlay: rgba(0, 0, 0, 0.6);
+    --color-skeleton: #383c44;
+    --color-skeleton-shine: #444853;
     --color-primary-hover: #8899a5;
     --color-text-secondary: #9496a0;
     --color-text-tertiary: #6e7280;
@@ -365,6 +377,10 @@ html[data-theme="dark"] {
   --color-foreground: #f7f7f8;
   --color-surface: #2d3239;
   --color-surface-raised: #383c44;
+  --color-surface-elevated: #383c44;
+  --color-surface-overlay: rgba(0, 0, 0, 0.6);
+  --color-skeleton: #383c44;
+  --color-skeleton-shine: #444853;
   --color-primary-hover: #ab91ba;
   --color-text-secondary: #9496a0;
   --color-text-tertiary: #6e7280;
@@ -387,6 +403,10 @@ html[data-theme="light"] {
   --color-foreground: #1c1e23;
   --color-surface: #FFFFFF;
   --color-surface-raised: #FFFFFF;
+  --color-surface-elevated: #fafafa;
+  --color-surface-overlay: rgba(28, 30, 35, 0.45);
+  --color-skeleton: #ededef;
+  --color-skeleton-shine: #f7f7f8;
   --color-primary-hover: #3e4b55;
   --color-text-secondary: #565a66;
   --color-text-tertiary: #82848f;
@@ -525,6 +545,19 @@ input[type="number"] {
 
 .animate-chart-tab {
   animation: chart-tab-enter 0.2s ease-out both;
+}
+
+@keyframes bottom-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-bottom-sheet-in {
+  animation: bottom-sheet-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes route-progress {

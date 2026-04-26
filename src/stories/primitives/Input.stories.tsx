@@ -1,7 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Input } from "@/components/ui/Input";
-import { NumberInput } from "@/components/ui/NumberInput";
 
 const meta = {
   title: "Primitives/Input",
@@ -21,8 +19,26 @@ export const Default: Story = {
   ),
 };
 
+export const WithLabel: Story = {
+  args: { label: "Kaufpreis", placeholder: "380.000" },
+  render: (args) => (
+    <div className="w-72">
+      <Input {...args} />
+    </div>
+  ),
+};
+
 export const WithSuffix: Story = {
   args: { label: "Kaufpreis", placeholder: "380.000", suffix: "€" },
+  render: (args) => (
+    <div className="w-72">
+      <Input {...args} />
+    </div>
+  ),
+};
+
+export const WithPrefix: Story = {
+  args: { label: "Webseite", placeholder: "rendion.de", prefix: "https://" },
   render: (args) => (
     <div className="w-72">
       <Input {...args} />
@@ -39,17 +55,35 @@ export const WithError: Story = {
   ),
 };
 
-export const NumberFormatted: Story = {
-  args: { label: "Kaufpreis", placeholder: "380.000" },
-  render: () => {
-    const ControlledNumberInput = () => {
-      const [value, setValue] = useState<number | null>(380000);
-      return (
-        <div className="w-72">
-          <NumberInput label="Kaufpreis" value={value} onChange={setValue} placeholder="380.000" />
-        </div>
-      );
-    };
-    return <ControlledNumberInput />;
+export const WithHelperText: Story = {
+  args: {
+    label: "Zinssatz",
+    placeholder: "3,5",
+    suffix: "%",
+    helperText: "Aktueller Durchschnitt: 3,8 %",
   },
+  render: (args) => (
+    <div className="w-72">
+      <Input {...args} />
+    </div>
+  ),
+};
+
+export const Disabled: Story = {
+  args: { label: "Kaufpreis", value: "380.000", suffix: "€", disabled: true },
+  render: (args) => (
+    <div className="w-72">
+      <Input {...args} />
+    </div>
+  ),
+};
+
+export const Mobile: Story = {
+  args: { label: "Kaufpreis", placeholder: "380.000", suffix: "€" },
+  parameters: { viewport: { defaultViewport: "mobile" } },
+  render: (args) => (
+    <div className="w-full px-4">
+      <Input {...args} />
+    </div>
+  ),
 };

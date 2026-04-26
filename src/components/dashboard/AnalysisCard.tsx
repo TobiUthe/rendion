@@ -1,69 +1,74 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, ShieldCheck, XCircle } from "lucide-react";
-import type { DashboardAnalysisSummary } from "@/lib/mock/dashboard";
+import { ArrowRight } from "lucide-react";
+import { VerdictHero } from "@/components/results/VerdictHero";
 import { cn } from "@/lib/utils";
-import { HEADINGS, BODY, DATA } from "@/lib/design-tokens";
+import { BODY, DATA, HEADINGS } from "@/lib/design-tokens";
+import { formatPercent, formatDelta, formatEuro } from "@/lib/format";
+import type { DashboardAnalysisSummary } from "@/lib/mock/dashboard";
+
+const dateFormatter = new Intl.DateTimeFormat("de-DE", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : dateFormatter.format(d);
+}
+
+function cashflowTone(value: number): string {
+  if (value > 0) return "text-pine-700";
+  if (value < 0) return "text-sienna-700";
+  return "text-[var(--color-foreground)]";
+}
 
 interface AnalysisCardProps {
   analysis: DashboardAnalysisSummary;
 }
 
-const VERDICT_ICONS = {
-  good: ShieldCheck,
-  mixed: AlertTriangle,
-  risky: XCircle,
-};
-
-const VERDICT_COLORS = {
-  good: "text-success-500",
-  mixed: "text-warning-500",
-  risky: "text-danger-500",
-};
-
 export function AnalysisCard({ analysis }: AnalysisCardProps) {
-  const VerdictIcon = VERDICT_ICONS[analysis.verdict.level];
-
   return (
-    <Link href={`/dashboard/${analysis.id}`}>
-      <div className="group rounded-xl border border-sand-200 bg-white shadow-sm hover:shadow-md transition-shadow px-6 py-5 cursor-pointer">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className={cn(HEADINGS.h4)}>{analysis.title}</h3>
-            <p className={cn(BODY.default, "mt-0.5")}>{analysis.address}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <VerdictIcon className={`h-4 w-4 ${VERDICT_COLORS[analysis.verdict.level]}`} />
-            <span className={`text-sm font-semibold ${VERDICT_COLORS[analysis.verdict.level]}`}>
-              {analysis.verdict.label}
-            </span>
-            <ArrowRight className="h-4 w-4 text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity ml-2" />
-          </div>
-        </div>
+    <Link
+      href={`/dashboard/${analysis.id}`}
+      className="group flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <VerdictHero level={analysis.verdict.level} label={analysis.verdict.label} />
+        <span className={cn(BODY.muted, "shrink-0 pt-2")}>
+          {formatDate(analysis.createdAt)}
+        </span>
+      </div>
 
-        <div className="grid grid-cols-3 gap-4 py-3 border-t border-sand-100">
-          <div>
-            <p className={cn(BODY.sectionLabel)}>Kaufpreis</p>
-            <p className={cn(DATA.value, "mt-1")}>
-              {(analysis.kaufpreis / 1000).toFixed(0)}k €
-            </p>
-          </div>
-          <div>
-            <p className={cn(BODY.sectionLabel)}>Rendite</p>
-            <p className={cn(DATA.value, "mt-1")}>
-              {analysis.bruttorendite}
-            </p>
-          </div>
-          <div>
-            <p className={cn(BODY.sectionLabel)}>Cashflow</p>
-            <p className={cn(DATA.value, "mt-1")}>
-              {analysis.cashflowMonat}
-            </p>
-          </div>
-        </div>
-
-        <p className={cn(BODY.muted, "mt-3")}>
-          Erstellt {new Date(analysis.createdAt).toLocaleDateString("de-DE")}
+      <div className="mt-4">
+        <h3 className={cn(HEADINGS.h4, "line-clamp-2")}>{analysis.title}</h3>
+        <p className={cn(BODY.default, "mt-1 line-clamp-1 text-[var(--color-text-secondary)]")}>
+          {analysis.address}
         </p>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--color-border-subtle)] pt-4">
+        <div>
+          <div className={cn(BODY.sectionLabel, "text-[var(--color-text-secondary)]")}>
+            Bruttorendite
+          </div>
+          <div className={cn(DATA.kpiStandard, "mt-1")}>
+            {formatPercent(analysis.bruttorenditePct, { decimals: 2 })}
+          </div>
+        </div>
+        <div>
+          <div className={cn(BODY.sectionLabel, "text-[var(--color-text-secondary)]")}>
+            Cashflow / Mo.
+          </div>
+          <div className={cn(DATA.kpiStandard, "mt-1", cashflowTone(analysis.cashflowMonat))}>
+            {formatDelta(analysis.cashflowMonat, formatEuro)}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-1.5 text-sm font-medium text-primary-600 transition group-hover:gap-2.5">
+        Details ansehen
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </div>
     </Link>
   );

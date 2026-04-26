@@ -1,3 +1,4 @@
+import { withDefaults } from "@/lib/calculator/defaults";
 import type { QuickCalcInput } from "@/lib/schemas/calculator";
 
 function toBase64Url(str: string): string {
@@ -18,7 +19,7 @@ function fromBase64Url(str: string): string {
   return Buffer.from(padded + pad, "base64").toString("utf-8");
 }
 
-export function encodeQuickParams(input: QuickCalcInput): string {
+export function encodeQuickParams(input: Pick<QuickCalcInput, "kaufpreis" | "kaltmiete" | "eigenkapital">): string {
   const payload = JSON.stringify([input.kaufpreis, input.kaltmiete, input.eigenkapital]);
   return `d=${toBase64Url(payload)}`;
 }
@@ -45,7 +46,7 @@ export function decodeQuickParams(
     ) {
       return null;
     }
-    return { kaufpreis, kaltmiete, eigenkapital };
+    return withDefaults({ kaufpreis, kaltmiete, eigenkapital });
   } catch {
     return null;
   }

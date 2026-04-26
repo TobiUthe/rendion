@@ -30,18 +30,18 @@ export function EmptyState({
   const hasIcon = Icon || iconNode;
 
   return (
-    <div className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 px-6 py-16 text-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] px-6 py-16 text-center ${className}`}>
       {hasIcon && (
         <div className="mb-4 flex items-center justify-center">
           {iconNode ?? (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100">
-              {Icon && <Icon className="h-6 w-6 text-neutral-400" />}
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface-elevated)]">
+              {Icon && <Icon className="h-6 w-6 text-[var(--color-text-tertiary)]" />}
             </div>
           )}
         </div>
       )}
-      <h2 className="text-sm-plus font-semibold text-neutral-700">{title}</h2>
-      <p className="mt-1 max-w-sm text-xs-plus text-neutral-500">
+      <h2 className="text-sm-plus font-semibold text-[var(--color-foreground)]">{title}</h2>
+      <p className="mt-1 max-w-sm text-xs-plus text-[var(--color-text-secondary)]">
         {description}
       </p>
       {action && (

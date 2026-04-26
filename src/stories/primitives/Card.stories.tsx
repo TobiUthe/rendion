@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Card } from '@/components/ui/Card';
 
 const meta = {
@@ -39,4 +39,17 @@ export const WithCustomClass: Story = {
     className: 'mt-4 border-2 border-primary-200',
     children: <p className="text-neutral-600">Dies ist eine Karte mit benutzerdefinierten Klassen.</p>,
   },
+};
+
+export const Mobile: Story = {
+  args: {
+    title: 'Übersicht',
+    children: <p className="text-[var(--color-text-secondary)]">Kartendarstellung auf kleinen Bildschirmen.</p>,
+  },
+  parameters: { viewport: { defaultViewport: 'mobile' } },
+  render: (args) => (
+    <div className="w-full px-4">
+      <Card {...args} />
+    </div>
+  ),
 };

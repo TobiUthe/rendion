@@ -31,6 +31,16 @@ export default defineConfig({
           },
         },
       },
+      {
+        resolve: {
+          alias: { '@': path.join(dirname, 'src') },
+        },
+        test: {
+          name: 'unit',
+          environment: 'node',
+          include: ['src/lib/**/*.test.ts'],
+        },
+      },
     ],
   },
 });

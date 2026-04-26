@@ -71,7 +71,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-foreground)]"
       aria-label={
         theme === "light"
           ? "Dunkelmodus aktivieren"

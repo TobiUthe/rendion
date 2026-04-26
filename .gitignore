@@ -46,3 +46,6 @@ next-env.d.ts
 # scratch — safe to delete any time
 /tmp/
 /.playwright-mcp/
+
+.vercel
+.env*.local

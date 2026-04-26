@@ -3,14 +3,16 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import * as d3 from "d3";
 import {
-  CHART_COLORS,
-  formatAxisK,
-  formatCurrency,
+  formatChartTick,
+  formatChartValue,
   responsiveMargin,
   responsiveFontSize,
 } from "@/lib/chart-utils";
-import { PALETTES } from "@/lib/design-tokens";
+import { PALETTES, OPACITY, DASH } from "@/lib/design-tokens";
+import { useThemeTokens } from "@/lib/hooks/useThemeTokens";
 import type { ProjectionRow } from "@/lib/schemas/calculator-output";
+import { ChartLegend, type LegendSeries } from "@/components/charts/ChartLegend";
+import { useToggleLegend } from "@/components/charts/useLegendState";
 
 interface D3WealthAccumulationChartProps {
   projection: ProjectionRow[];
@@ -37,6 +39,7 @@ interface TooltipState {
 const SERIES_KEYS = ["eigenkapital", "tilgungDelta", "wertzuwachsDelta", "cashflowDelta"] as const;
 type SeriesKey = (typeof SERIES_KEYS)[number];
 
+const NET_LINE_KEY = "cumulativeNet";
 const NET_LINE_COLOR = PALETTES.gold[500];
 
 const SERIES_META: Record<SeriesKey, { color: string; label: string }> = {
@@ -45,6 +48,12 @@ const SERIES_META: Record<SeriesKey, { color: string; label: string }> = {
   wertzuwachsDelta: { color: PALETTES.forest[500], label: "Wertzuwachs" },
   cashflowDelta: { color: PALETTES.steel[500], label: "Cashflow" },
 };
+
+// All series + the net line entry for the legend
+const ALL_LEGEND_SERIES: LegendSeries[] = [
+  ...SERIES_KEYS.map((k) => ({ key: k, label: SERIES_META[k].label, color: SERIES_META[k].color })),
+  { key: NET_LINE_KEY, label: "Kumulierter Nettowert", color: NET_LINE_COLOR },
+];
 
 export function WealthAccumulationChart({
   projection,
@@ -55,6 +64,9 @@ export function WealthAccumulationChart({
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  const tokens = useThemeTokens();
+  const legend = useToggleLegend();
 
   const hideTooltip = useCallback(() => setTooltip(null), []);
 
@@ -106,7 +118,8 @@ export function WealthAccumulationChart({
 
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || dimensions.width === 0) return;
+    // Bail out if dimensions haven't been measured yet
+    if (!svg || dimensions.width === 0 || dimensions.height === 0) return;
 
     const { width, height } = dimensions;
     const baseMargin = responsiveMargin(width);
@@ -128,16 +141,23 @@ export function WealthAccumulationChart({
 
     const x = d3.scaleBand<number>().domain(data.map((d) => d.jahr)).range([0, w]).padding(0.25);
 
-    const stack = d3
-      .stack<WealthDataPoint>()
-      .keys(SERIES_KEYS as unknown as string[])
-      .order(d3.stackOrderNone)
-      .offset(d3.stackOffsetDiverging);
+    // Filter visible stack keys
+    const visibleKeys = SERIES_KEYS.filter((k) => !legend.hiddenKeys.has(k));
+    const showNetLine = !legend.hiddenKeys.has(NET_LINE_KEY);
 
-    const stacked = stack(data);
+    let stacked: d3.Series<WealthDataPoint, string>[] = [];
 
-    const minDelta = d3.min(stacked, (layer) => d3.min(layer, (d) => d[0])) ?? 0;
-    const maxDelta = d3.max(stacked, (layer) => d3.max(layer, (d) => d[1])) ?? 0;
+    if (visibleKeys.length > 0) {
+      const stack = d3
+        .stack<WealthDataPoint>()
+        .keys(visibleKeys as unknown as string[])
+        .order(d3.stackOrderNone)
+        .offset(d3.stackOffsetDiverging);
+      stacked = stack(data);
+    }
+
+    const minDelta = stacked.length > 0 ? (d3.min(stacked, (layer) => d3.min(layer, (d) => d[0])) ?? 0) : 0;
+    const maxDelta = stacked.length > 0 ? (d3.max(stacked, (layer) => d3.max(layer, (d) => d[1])) ?? 0) : 0;
     const leftPad = (maxDelta - minDelta) * 0.05;
     const yLeft = d3
       .scaleLinear()
@@ -173,7 +193,7 @@ export function WealthAccumulationChart({
               .attr("height", raw)
               .attr("rx", 0)
               .attr("fill", color)
-              .attr("fill-opacity", 0.8);
+              .attr("fill-opacity", OPACITY.chartNormal);
             return;
           }
 
@@ -205,10 +225,11 @@ export function WealthAccumulationChart({
             .attr("height", adjH)
             .attr("rx", isTop ? rr : 0)
             .attr("fill", color)
-            .attr("fill-opacity", 0.8);
+            .attr("fill-opacity", OPACITY.chartNormal);
         });
     }
 
+    // X axis
     const xAxisG = g
       .append("g")
       .attr("transform", `translate(0,${h})`)
@@ -218,19 +239,23 @@ export function WealthAccumulationChart({
           .tickValues(data.filter((d) => d.jahr % 5 === 0).map((d) => d.jahr))
           .tickFormat((d) => String(d)),
       );
-    xAxisG.select(".domain").attr("stroke", CHART_COLORS.axis).attr("stroke-opacity", 0.3);
-    xAxisG.selectAll("text").attr("fill", CHART_COLORS.axis).style("font-size", `${fontSize}px`);
+    xAxisG.select(".domain").attr("stroke", tokens.axis).attr("stroke-opacity", 0.3);
+    xAxisG.selectAll("text").attr("fill", tokens.axis).style("font-size", `${fontSize}px`);
     xAxisG.selectAll(".tick line").remove();
 
-    const leftAxisG = g.append("g").call(d3.axisLeft(yLeft).ticks(5).tickFormat((d) => formatAxisK(d as number)));
-    leftAxisG.select(".domain").attr("stroke", CHART_COLORS.axis).attr("stroke-opacity", 0.3);
-    leftAxisG.selectAll("text").attr("fill", CHART_COLORS.axis).style("font-size", `${fontSize}px`);
-    leftAxisG.selectAll(".tick line").attr("stroke", CHART_COLORS.axis).attr("stroke-opacity", 0.2);
+    // Left axis — uses formatChartTick for German compact notation
+    const leftAxisG = g.append("g").call(
+      d3.axisLeft(yLeft).ticks(5).tickFormat((d) => formatChartTick(d as number)),
+    );
+    leftAxisG.select(".domain").attr("stroke", tokens.axis).attr("stroke-opacity", 0.3);
+    leftAxisG.selectAll("text").attr("fill", tokens.axis).style("font-size", `${fontSize}px`);
+    leftAxisG.selectAll(".tick line").attr("stroke", tokens.axis).attr("stroke-opacity", 0.2);
 
+    // Right axis (net line scale)
     const rightAxisG = g
       .append("g")
       .attr("transform", `translate(${w},0)`)
-      .call(d3.axisRight(yRight).ticks(5).tickFormat((d) => formatAxisK(d as number)));
+      .call(d3.axisRight(yRight).ticks(5).tickFormat((d) => formatChartTick(d as number)));
     rightAxisG.select(".domain").attr("stroke", NET_LINE_COLOR).attr("stroke-opacity", 0.4);
     rightAxisG.selectAll("text").attr("fill", NET_LINE_COLOR).style("font-size", `${fontSize}px`);
     rightAxisG.selectAll(".tick line").attr("stroke", NET_LINE_COLOR).attr("stroke-opacity", 0.3);
@@ -241,44 +266,60 @@ export function WealthAccumulationChart({
       .y((d) => yRight(d.cumulativeNet))
       .curve(d3.curveMonotoneX);
 
-    g.append("path").datum(data).attr("fill", "none").attr("stroke", "white").attr("stroke-width", 4).attr("d", lineGen);
-    g.append("path").datum(data).attr("fill", "none").attr("stroke", NET_LINE_COLOR).attr("stroke-width", 2).attr("d", lineGen);
+    if (showNetLine) {
+      // White "halo" replaced with theme surface — correct in dark mode
+      g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", tokens.surface)
+        .attr("stroke-width", 4)
+        .attr("d", lineGen);
+      g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", NET_LINE_COLOR)
+        .attr("stroke-width", 2)
+        .attr("d", lineGen);
+    }
 
+    // Zero line
     g.append("line")
       .attr("x1", 0)
       .attr("x2", w)
       .attr("y1", yLeft(0))
       .attr("y2", yLeft(0))
-      .attr("stroke", CHART_COLORS.text)
+      .attr("stroke", tokens.axis)
       .attr("stroke-width", 1.5)
-      .attr("stroke-opacity", 0.6);
+      .attr("stroke-opacity", OPACITY.chartMuted);
 
     const lastRow = data[data.length - 1];
-    const defaultNet = lastRow.cumulativeNet;
+    const defaultNet = lastRow?.cumulativeNet ?? 0;
 
     const netIndicator = g.append("g").attr("class", "net-indicator");
-    netIndicator
-      .append("line")
-      .attr("class", "net-line")
-      .attr("x1", 0)
-      .attr("x2", w)
-      .attr("y1", yRight(defaultNet))
-      .attr("y2", yRight(defaultNet))
-      .attr("stroke", NET_LINE_COLOR)
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "4 3")
-      .attr("stroke-opacity", 0.7);
-    netIndicator
-      .append("text")
-      .attr("class", "net-label")
-      .attr("x", w + 6)
-      .attr("y", yRight(defaultNet))
-      .attr("dy", "0.35em")
-      .attr("text-anchor", "start")
-      .attr("fill", NET_LINE_COLOR)
-      .style("font-size", `${fontSize}px`)
-      .style("font-weight", "700")
-      .text(formatAxisK(defaultNet));
+    if (showNetLine) {
+      netIndicator
+        .append("line")
+        .attr("class", "net-line")
+        .attr("x1", 0)
+        .attr("x2", w)
+        .attr("y1", yRight(defaultNet))
+        .attr("y2", yRight(defaultNet))
+        .attr("stroke", NET_LINE_COLOR)
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", DASH.connector)
+        .attr("stroke-opacity", OPACITY.chartNormal - 0.15);
+      netIndicator
+        .append("text")
+        .attr("class", "net-label")
+        .attr("x", w + 6)
+        .attr("y", yRight(defaultNet))
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "start")
+        .attr("fill", NET_LINE_COLOR)
+        .style("font-size", `${fontSize}px`)
+        .style("font-weight", "700")
+        .text(formatChartTick(defaultNet));
+    }
 
     const barCenters = data.map((d) => (x(d.jahr) ?? 0) + x.bandwidth() / 2);
     let activeIdx = -1;
@@ -287,31 +328,37 @@ export function WealthAccumulationChart({
       if (idx === activeIdx) return;
       activeIdx = idx;
       if (idx < 0) {
-        barsGroup.selectAll("rect").attr("fill-opacity", 0.8);
-        netIndicator.select(".net-line").attr("y1", yRight(defaultNet)).attr("y2", yRight(defaultNet));
-        netIndicator.select(".net-label").attr("y", yRight(defaultNet)).text(formatAxisK(defaultNet));
+        barsGroup.selectAll("rect").attr("fill-opacity", OPACITY.chartNormal);
+        if (showNetLine) {
+          netIndicator.select(".net-line").attr("y1", yRight(defaultNet)).attr("y2", yRight(defaultNet));
+          netIndicator.select(".net-label").attr("y", yRight(defaultNet)).text(formatChartTick(defaultNet));
+        }
         setTooltip(null);
         return;
       }
       const row = data[idx];
+      if (!row) return;
       const net = row.cumulativeNet;
 
-      barsGroup.selectAll("rect").attr("fill-opacity", 0.25);
+      barsGroup.selectAll("rect").attr("fill-opacity", OPACITY.chartInactive);
       for (const layer of stacked) {
         const key = layer.key as SeriesKey;
         barsGroup
           .selectAll<SVGRectElement, d3.SeriesPoint<WealthDataPoint>>(`.bar-${key}`)
           .filter((pt) => pt.data.jahr === row.jahr)
-          .attr("fill-opacity", 1);
+          .attr("fill-opacity", OPACITY.chartActive);
       }
 
-      const netY = yRight(net);
-      netIndicator.select(".net-line").attr("y1", netY).attr("y2", netY);
-      netIndicator.select(".net-label").attr("y", netY).text(formatAxisK(net));
+      if (showNetLine) {
+        const netY = yRight(net);
+        netIndicator.select(".net-line").attr("y1", netY).attr("y2", netY);
+        netIndicator.select(".net-label").attr("y", netY).text(formatChartTick(net));
+      }
 
       const barX = barCenters[idx] + margin.left;
-      const stackTop = stacked[stacked.length - 1][idx];
-      const rawY = yLeft(stackTop[1]) + margin.top;
+      const topLayerIdx = stacked.length - 1;
+      const stackTop = topLayerIdx >= 0 ? stacked[topLayerIdx][idx] : null;
+      const rawY = stackTop ? yLeft(stackTop[1]) + margin.top : margin.top + 10;
       const clampedY = Math.max(margin.top + 10, Math.min(rawY, height - margin.bottom - 10));
       setTooltip({ x: barX, y: clampedY, row, visible: true });
     };
@@ -335,7 +382,8 @@ export function WealthAccumulationChart({
         applyHighlight(nearest);
       })
       .on("mouseleave", () => applyHighlight(-1));
-  }, [dimensions, data]);
+  // tokens is included so the effect re-runs on theme change
+  }, [dimensions, data, legend.hiddenKeys, tokens]);
 
   const tooltipStyle = useMemo(() => {
     if (!tooltip) return undefined;
@@ -353,47 +401,83 @@ export function WealthAccumulationChart({
   }, [tooltip, dimensions.width, dimensions.height]);
 
   const tooltipNetTotal = tooltip ? tooltip.row.cumulativeNet : 0;
+  const showNetLineInTooltip = !legend.hiddenKeys.has(NET_LINE_KEY);
+
+  // Compose a meaningful aria-label from the data
+  const ariaLabel = useMemo(() => {
+    const lastRow = data[data.length - 1];
+    if (lastRow) {
+      return `Vermögensentwicklung über ${lastRow.jahr} Jahre — kumulierter Nettowert: ${formatChartValue(lastRow.cumulativeNet)}`;
+    }
+    return "Diagramm: Vermögensaufbau";
+  }, [data]);
 
   return (
-    <div className="relative w-full" role="img" aria-label="Diagramm: Vermögensaufbau">
+    <div className="relative w-full">
       <div ref={containerRef} className="relative h-72 w-full md:h-96" onMouseLeave={hideTooltip}>
-        <svg ref={svgRef} className="h-full w-full" />
+        <svg
+          ref={svgRef}
+          className="h-full w-full"
+          role="img"
+          aria-label={ariaLabel}
+        />
 
         {tooltip?.visible && (
           <div
-            className="pointer-events-none absolute z-50 w-60 rounded-xl bg-white px-4 py-3 shadow-lg ring-1 ring-neutral-200/60"
+            className="pointer-events-none absolute z-50 w-[200px] sm:w-60 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 sm:px-4 sm:py-3 shadow-md"
             style={tooltipStyle}
           >
-            <p className="text-xs-plus font-semibold text-neutral-800">
+            <p className="text-xs-plus font-semibold text-[var(--color-foreground)]">
               {tooltip.row.jahr === 0 ? "Jahr 0 — Startkapital" : `Jahr ${tooltip.row.jahr} — Veränderung`}
             </p>
 
             <div className="mt-2 space-y-1">
-              {SERIES_KEYS.map((k) => {
+              {SERIES_KEYS.filter((k) => !legend.hiddenKeys.has(k)).map((k) => {
                 const val = tooltip.row[k];
                 if (k === "eigenkapital" && val === 0) return null;
                 return (
                   <div key={k} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-neutral-600">
-                      <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SERIES_META[k].color }} />
+                    <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
+                      <span
+                        className="inline-block h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: SERIES_META[k].color }}
+                      />
                       {SERIES_META[k].label}
                     </span>
-                    <span className="tabular-nums text-neutral-700">{formatCurrency(val)}</span>
+                    <span className="tabular-nums text-[var(--color-foreground)]">
+                      {formatChartValue(val)}
+                    </span>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-1.5 flex items-center justify-between border-t border-sand-200 pt-1.5 text-xs">
-              <span className="flex items-center gap-1.5 text-neutral-600">
-                <span className="inline-block h-[2px] w-3 shrink-0 rounded-full" style={{ backgroundColor: NET_LINE_COLOR }} />
-                Netto (kumuliert)
-              </span>
-              <span className="font-semibold tabular-nums text-neutral-700">{formatCurrency(tooltipNetTotal)}</span>
-            </div>
+            {showNetLineInTooltip && (
+              <div className="mt-1.5 flex items-center justify-between border-t border-[var(--color-border)] pt-1.5 text-xs">
+                <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
+                  <span
+                    className="inline-block h-[2px] w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: NET_LINE_COLOR }}
+                  />
+                  Kumulierter Nettowert
+                </span>
+                <span className="font-semibold tabular-nums text-[var(--color-foreground)]">
+                  {formatChartValue(tooltipNetTotal)}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      <ChartLegend
+        mode="toggle"
+        series={ALL_LEGEND_SERIES}
+        hiddenKeys={legend.hiddenKeys}
+        onToggle={legend.onToggle}
+        className="mt-3"
+        ariaLabel="Vermögensaufbau-Legende — Datenreihe ein-/ausblenden"
+      />
     </div>
   );
 }

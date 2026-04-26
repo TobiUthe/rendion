@@ -18,5 +18,5 @@ export default async function ErgebnisPage({
 
   const view = mapResultToView(input, result);
 
-  return <ErgebnisView view={view} input={input} kaufpreisfaktor={result.kaufpreisfaktor} />;
+  return <ErgebnisView view={view} input={input} />;
 }

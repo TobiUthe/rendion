@@ -229,7 +229,7 @@ const features: Feature[] = [
       "Bruttorendite, Nettocashflow, Cap Rate, DSCR und 6 weitere Kennzahlen auf einen Blick.",
     accent: "text-primary-600",
     iconBg: "bg-primary-100",
-    gradient: "from-primary-50/80 to-white",
+    gradient: "from-primary-50/80 to-[var(--color-surface)]",
     illustration: <MiniBarChart />,
     span: "sm:col-span-2 lg:col-span-2",
     size: "lg",
@@ -241,7 +241,7 @@ const features: Feature[] = [
       "Automatische A–F Bewertung auf Basis von Rendite, Cashflow und Standort.",
     accent: "text-accent-600",
     iconBg: "bg-accent-50",
-    gradient: "from-accent-50/60 to-white",
+    gradient: "from-accent-50/60 to-[var(--color-surface)]",
     illustration: <MiniDealScore />,
     span: "lg:col-span-1",
     pro: true,
@@ -254,7 +254,7 @@ const features: Feature[] = [
       "Monatliche Einnahmen und Ausgaben mit Steuerberechnung — auf den Cent genau.",
     accent: "text-success-500",
     iconBg: "bg-success-50",
-    gradient: "from-success-50/60 to-white",
+    gradient: "from-success-50/60 to-[var(--color-surface)]",
     illustration: <MiniCashflowLine />,
     span: "lg:col-span-1",
   },
@@ -265,7 +265,7 @@ const features: Feature[] = [
       "Vermögensaufbau, Wertsteigerung und Eigenkapitalentwicklung über drei Jahrzehnte.",
     accent: "text-primary-600",
     iconBg: "bg-primary-100",
-    gradient: "from-primary-50/40 to-white",
+    gradient: "from-primary-50/40 to-[var(--color-surface)]",
     illustration: <MiniProjection />,
     span: "lg:col-span-1",
   },
@@ -276,7 +276,7 @@ const features: Feature[] = [
       "Immobilie vs. ETF-Sparplan — welche Anlage performt besser?",
     accent: "text-accent-600",
     iconBg: "bg-accent-50",
-    gradient: "from-accent-50/50 to-white",
+    gradient: "from-accent-50/50 to-[var(--color-surface)]",
     illustration: <MiniComparison />,
     span: "lg:col-span-1",
   },
@@ -288,7 +288,7 @@ const features: Feature[] = [
       "Abschreibungen, Werbungskosten und steuerliche Auswirkungen auf Ihren Cashflow.",
     accent: "text-warning-500",
     iconBg: "bg-warning-50",
-    gradient: "from-warning-50/50 to-white",
+    gradient: "from-warning-50/50 to-[var(--color-surface)]",
     illustration: <MiniTaxShield />,
     span: "lg:col-span-1",
   },
@@ -299,7 +299,7 @@ const features: Feature[] = [
       "Finanzierungs-Baukasten, Monte-Carlo-Simulation, Stresstests und Sensitivitätsanalyse.",
     accent: "text-primary-600",
     iconBg: "bg-primary-100",
-    gradient: "from-primary-50/60 to-white",
+    gradient: "from-primary-50/60 to-[var(--color-surface)]",
     illustration: <MiniMonteCarlo />,
     span: "sm:col-span-2 lg:col-span-2",
     size: "lg",
@@ -312,10 +312,10 @@ export function FeatureBentoGrid() {
     <section id="funktionen" className="relative overflow-hidden px-4 py-16">
       <BentoBackground />
       <div className="relative mx-auto max-w-6xl">
-        <h2 className="font-display text-center text-2xl sm:text-3xl font-semibold text-neutral-900">
+        <h2 className="font-display text-center text-2xl sm:text-3xl font-semibold text-[var(--color-foreground)]">
           Professionelle Immobilienanalyse
         </h2>
-        <p className="mt-3 text-center text-neutral-500">
+        <p className="mt-3 text-center text-[var(--color-text-secondary)]">
           Von der Erstbewertung bis zur Monte-Carlo-Simulation
         </p>
 
@@ -340,10 +340,10 @@ export function FeatureBentoGrid() {
                         </span>
                       )}
                     </div>
-                    <h3 className={`font-display mt-4 font-semibold text-neutral-900 ${isLg ? "text-xl" : "text-lg"}`}>
+                    <h3 className={`font-display mt-4 font-semibold text-[var(--color-foreground)] ${isLg ? "text-xl" : "text-lg"}`}>
                       {feature.title}
                     </h3>
-                    <p className={`mt-2 leading-relaxed text-neutral-500 ${isLg ? "text-base" : "text-sm-plus"}`}>
+                    <p className={`mt-2 leading-relaxed text-[var(--color-text-secondary)] ${isLg ? "text-base" : "text-sm-plus"}`}>
                       {feature.description}
                     </p>
                   </div>

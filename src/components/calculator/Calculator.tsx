@@ -8,9 +8,10 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { RouteProgressBar } from "@/components/ui/RouteProgressBar";
 import { quickCalcKapitalanlage } from "@/lib/calculator/quick-calc";
 import { encodeQuickParams } from "@/lib/calculator/url-params";
-import { DEMO_INPUT } from "@/lib/calculator/defaults";
+import { DEMO_INPUT, withDefaults } from "@/lib/calculator/defaults";
 import { isValidQuickCalcInput } from "@/lib/schemas/calculator";
 import { trackEvent, bucketCashflow } from "@/lib/analytics/umami";
+import { formatPercent, formatFactor, formatEuro, formatDelta } from "@/lib/format";
 
 interface CalculatorProps {
   initial?: {
@@ -34,7 +35,7 @@ export function Calculator({ initial, compact = false }: CalculatorProps) {
 
   const livePreview = useMemo(() => {
     if (!isValid) return null;
-    return quickCalcKapitalanlage(candidate);
+    return quickCalcKapitalanlage(withDefaults(candidate));
   }, [candidate, isValid]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -63,13 +64,13 @@ export function Calculator({ initial, compact = false }: CalculatorProps) {
       <RouteProgressBar active={pending} />
       <form
         onSubmit={handleSubmit}
-        className={`flex flex-col gap-5 rounded-2xl border border-sand-200/80 bg-white/95 p-6 shadow-xl shadow-neutral-900/5 ring-1 ring-neutral-900/5 backdrop-blur-sm sm:p-7 ${
+        className={`flex flex-col gap-5 rounded-2xl border border-[var(--color-border)]/80 bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm sm:p-7 ${
           compact ? "" : "lg:-rotate-[0.4deg] lg:transition-transform lg:duration-500 lg:hover:rotate-0"
         }`}
         noValidate
       >
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-lg font-semibold text-neutral-900">Rendite schnell berechnen</h3>
+          <h3 className="font-display text-lg font-semibold text-[var(--color-foreground)]">Rendite schnell berechnen</h3>
           <span className="rounded-full bg-pine-50 px-2 py-0.5 text-2xs font-medium text-pine-700">
             In 5 Sekunden
           </span>
@@ -110,7 +111,7 @@ export function Calculator({ initial, compact = false }: CalculatorProps) {
           <Button type="submit" variant="primary" size="lg" className="w-full" disabled={!isValid || pending}>
             {pending ? "Ergebnis wird berechnet…" : "Ergebnis berechnen"}
           </Button>
-          <p className="text-center text-xs text-neutral-500">
+          <p className="text-center text-xs text-[var(--color-text-secondary)]">
             Kostenlos · Ohne Anmeldung · DSGVO-konform
           </p>
         </div>
@@ -118,7 +119,7 @@ export function Calculator({ initial, compact = false }: CalculatorProps) {
         <button
           type="button"
           onClick={handleDemo}
-          className="text-center text-sm text-neutral-500 underline-offset-2 hover:text-neutral-700 hover:underline"
+          className="text-center text-sm text-[var(--color-text-secondary)] underline-offset-2 hover:text-[var(--color-foreground)] hover:underline"
         >
           Demo-Analyse ansehen
         </button>
@@ -137,20 +138,20 @@ interface LivePreviewProps {
 function LivePreview({ bruttoRendite, kaufpreisfaktor, cashflowMonat, hasData }: LivePreviewProps) {
   return (
     <div
-      className={`rounded-xl border border-sand-200 bg-sand-50/70 px-4 py-3 transition-opacity duration-300 ${
+      className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)]/70 px-4 py-3 transition-opacity duration-300 ${
         hasData ? "opacity-100" : "opacity-60"
       }`}
       aria-live="polite"
     >
-      <p className="text-2xs font-semibold uppercase tracking-wider text-neutral-500">Live-Vorschau</p>
+      <p className="text-2xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Live-Vorschau</p>
       <div className="mt-1.5 grid grid-cols-3 gap-3">
         <PreviewMetric
           label="Bruttorendite"
-          value={hasData ? <AnimatedNumber value={bruttoRendite} format={(n) => `${n.toFixed(2).replace(".", ",")} %`} /> : "—"}
+          value={hasData ? <AnimatedNumber value={bruttoRendite} format={(n) => formatPercent(n, { decimals: 2 })} /> : "—"}
         />
         <PreviewMetric
           label="Faktor"
-          value={hasData ? <AnimatedNumber value={kaufpreisfaktor} format={(n) => `${n.toFixed(1).replace(".", ",")}×`} /> : "—"}
+          value={hasData ? <AnimatedNumber value={kaufpreisfaktor} format={(n) => formatFactor(n, { decimals: 1 })} /> : "—"}
         />
         <PreviewMetric
           label="Cashflow/M."
@@ -158,7 +159,7 @@ function LivePreview({ bruttoRendite, kaufpreisfaktor, cashflowMonat, hasData }:
             hasData ? (
               <AnimatedNumber
                 value={cashflowMonat}
-                format={(n) => `${n >= 0 ? "+" : "−"}${Math.abs(Math.round(n)).toLocaleString("de-DE")} €`}
+                format={(n) => formatDelta(Math.round(n), formatEuro)}
               />
             ) : (
               "—"
@@ -181,10 +182,10 @@ function PreviewMetric({
   tone?: "positive" | "negative";
 }) {
   const toneClass =
-    tone === "positive" ? "text-pine-700" : tone === "negative" ? "text-sienna-700" : "text-neutral-900";
+    tone === "positive" ? "text-pine-700" : tone === "negative" ? "text-sienna-700" : "text-[var(--color-foreground)]";
   return (
     <div>
-      <p className="text-2xs text-neutral-500">{label}</p>
+      <p className="text-2xs text-[var(--color-text-secondary)]">{label}</p>
       <p className={`mt-0.5 font-mono text-sm font-semibold tabular-nums ${toneClass}`}>{value}</p>
     </div>
   );

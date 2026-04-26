@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Button } from '@/components/ui/Button';
 import { Plus } from 'lucide-react';
 
@@ -112,4 +112,29 @@ export const Loading: Story = {
     disabled: true,
     children: 'Berechnet...',
   },
+};
+
+export const Mobile: Story = {
+  args: {
+    variant: 'primary',
+    size: 'md',
+    children: 'Neue Analyse starten',
+  },
+  parameters: {
+    viewport: { defaultViewport: 'mobile' },
+    layout: 'padded',
+  },
+  render: (args) => (
+    <div className="w-full px-4 space-y-3">
+      <Button {...args} variant="primary" size="md" className="w-full">
+        Neue Analyse starten
+      </Button>
+      <Button {...args} variant="secondary" size="md" className="w-full">
+        Abbrechen
+      </Button>
+      <Button {...args} variant="ghost" size="md" className="w-full">
+        Mehr Info
+      </Button>
+    </div>
+  ),
 };

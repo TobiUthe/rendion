@@ -2,6 +2,7 @@
 
 import { forwardRef, useMemo, type ChangeEvent } from "react";
 import { Input } from "./Input";
+import { formatNumber } from "@/lib/format";
 
 interface NumberInputProps {
   label?: string;
@@ -21,11 +22,9 @@ interface NumberInputProps {
   wrapperClassName?: string;
 }
 
-const FORMATTER = new Intl.NumberFormat("de-DE");
-
 function formatDisplay(value: number | null): string {
   if (value === null || Number.isNaN(value)) return "";
-  return FORMATTER.format(value);
+  return formatNumber(value);
 }
 
 function parseInput(raw: string): number | null {

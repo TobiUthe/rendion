@@ -1,3 +1,6 @@
+import { computePostPayoffCashflow } from "./cashflow";
+import { deriveVerdict, type VerdictLevel } from "./kpis";
+import { formatEuro, formatPercent, formatFactor, formatNumber, formatDelta } from "@/lib/format";
 import type { QuickCalcInput } from "@/lib/schemas/calculator";
 import type { QuickCalcKapitalanlageResult } from "./quick-calc";
 import type { ProjectionRow, TilgungsplanRow } from "@/lib/schemas/calculator-output";
@@ -17,28 +20,30 @@ export interface WaterfallItem {
   description?: string;
 }
 
-export type VerdictLevel = "good" | "mixed" | "risky";
+export interface WaterfallMeta {
+  timeframeLabel: string;
+  postPayoffNote?: string;
+}
+
+export type { VerdictLevel };
 
 export interface ErgebnisView {
   kpis: KpiItem[];
   projection: ProjectionRow[];
   tilgungsplan: TilgungsplanRow[];
   waterfall: WaterfallItem[];
+  waterfallMeta: WaterfallMeta;
   verdict: { level: VerdictLevel; label: string };
   title: string;
   subtitle: string;
   kaufnebenkosten: number;
 }
 
-const EURO = (n: number) =>
-  (n >= 0 ? "+" : "−") + Math.abs(Math.round(n)).toLocaleString("de-DE") + " €";
-
-const EURO_PLAIN = (n: number) =>
-  Math.round(n).toLocaleString("de-DE") + " €";
-
-const PERCENT = (n: number) => n.toFixed(2).replace(".", ",") + " %";
-
-const FACTOR = (n: number) => n.toFixed(1).replace(".", ",") + "×";
+// Local aliases — thin wrappers so call sites below stay readable.
+const EURO = (n: number) => formatDelta(n, formatEuro);
+const EURO_PLAIN = (n: number) => formatEuro(n);
+const PERCENT = (n: number) => formatPercent(n, { decimals: 2 });
+const FACTOR = (n: number) => formatFactor(n, { decimals: 1 });
 
 export function mapResultToView(
   input: QuickCalcInput,
@@ -72,7 +77,7 @@ export function mapResultToView(
       color: eigenkapital > 0 ? ekColor : null,
     },
     { label: "Cap Rate", value: PERCENT(result.capRate), color: nettoColor },
-    { label: "DSCR", value: result.dscr.toFixed(2).replace(".", ","), color: dscrColor },
+    { label: "DSCR", value: formatNumber(result.dscr, { decimals: 2 }), color: dscrColor },
     {
       label: "Tilgungsdauer",
       value: result.tilgungsdauerJahre >= 60 ? "> 60 Jahre" : `${result.tilgungsdauerJahre} Jahre`,
@@ -86,17 +91,27 @@ export function mapResultToView(
     {
       label: "Nebenkosten",
       value: -result.kostenMonat,
-      description: "Nicht umlagefähige Kosten (≈ 30 % der Kaltmiete)",
+      description: "Nicht umlagefähig, Grundsteuer, Instandhaltung, Verwaltung",
     },
     {
       label: "Annuität",
       value: -result.annuitaetMonat,
-      description: `${Math.round((result.annuitaetMonat * 12) / result.darlehenssumme * 100 * 10) / 10 || 0} % p.a. auf ${EURO_PLAIN(result.darlehenssumme)}`,
+      description: `${formatPercent(input.zinssatzPa + input.tilgungPa, { decimals: 2 })} p.a. auf ${EURO_PLAIN(result.darlehenssumme)}`,
     },
     { label: "Cashflow", value: result.cashflowMonat, isTotal: true },
   ];
 
-  const verdict = deriveVerdict(result);
+  const waterfallMeta = buildWaterfallMeta({
+    tilgungsdauerJahre: result.tilgungsdauerJahre,
+    kaltmiete,
+    kostenMonat: result.kostenMonat,
+    projectionYears: input.projectionYears,
+  });
+
+  const verdict = deriveVerdict({
+    kaufpreisfaktor: result.kaufpreisfaktor,
+    cashflowMonat: result.cashflowMonat,
+  });
 
   const title = `Analyse · ${EURO_PLAIN(kaufpreis)} · ${EURO_PLAIN(kaltmiete)} Kaltmiete`;
   const subtitle = `Eigenkapital ${EURO_PLAIN(eigenkapital)} · Darlehen ${EURO_PLAIN(result.darlehenssumme)} · 10 J. Vermögen ${EURO_PLAIN(result.vermoegen10)}`;
@@ -106,6 +121,7 @@ export function mapResultToView(
     projection: result.projection,
     tilgungsplan: result.tilgungsplan,
     waterfall,
+    waterfallMeta,
     verdict,
     title,
     subtitle,
@@ -113,12 +129,27 @@ export function mapResultToView(
   };
 }
 
-function deriveVerdict(r: QuickCalcKapitalanlageResult): { level: VerdictLevel; label: string } {
-  if (r.kaufpreisfaktor <= 22 && r.cashflowMonat >= 0) {
-    return { level: "good", label: "Attraktive Rendite" };
+function buildWaterfallMeta(params: {
+  tilgungsdauerJahre: number;
+  kaltmiete: number;
+  kostenMonat: number;
+  projectionYears: number;
+}): WaterfallMeta {
+  const { tilgungsdauerJahre, kaltmiete, kostenMonat, projectionYears } = params;
+  const horizon = projectionYears;
+  const endJahr = Math.min(tilgungsdauerJahre || horizon, horizon);
+  const hasPayoffWithinHorizon =
+    tilgungsdauerJahre > 0 && tilgungsdauerJahre <= horizon;
+
+  const timeframeLabel = hasPayoffWithinHorizon
+    ? `Tilgungsphase · Jahr 1–${endJahr}`
+    : `Tilgungsphase · Jahr 1–${horizon}+`;
+
+  let postPayoffNote: string | undefined;
+  if (hasPayoffWithinHorizon) {
+    const post = computePostPayoffCashflow({ kaltmiete, kostenMonat });
+    postPayoffNote = `Ab Jahr ${endJahr + 1} entfällt die Annuität — Cashflow steigt auf ${EURO(post.cashflowMonat)} / Monat.`;
   }
-  if (r.kaufpreisfaktor >= 32 || r.cashflowMonat < -200) {
-    return { level: "risky", label: "Hohes Risiko" };
-  }
-  return { level: "mixed", label: "Gemischtes Bild" };
+
+  return { timeframeLabel, postPayoffNote };
 }

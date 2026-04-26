@@ -1,15 +1,18 @@
 "use client";
 
-import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import * as d3 from "d3";
 import {
   responsiveMargin,
   responsiveFontSize,
   prefersReducedMotion,
-  formatCurrency,
+  formatChartValue,
 } from "@/lib/chart-utils";
-import { PALETTES, CHART_CHROME } from "@/lib/design-tokens";
+import { PALETTES, OPACITY, DASH } from "@/lib/design-tokens";
+import { useThemeTokens } from "@/lib/hooks/useThemeTokens";
 import { ANIMATION } from "@/lib/animation-config";
+import { ChartLegend, type LegendSeries } from "@/components/charts/ChartLegend";
+import { useFocusLegend } from "@/components/charts/useLegendState";
 
 export interface WaterfallItem {
   label: string;
@@ -21,6 +24,8 @@ export interface WaterfallItem {
 interface WaterfallProps {
   items: WaterfallItem[];
   title?: string;
+  subtitle?: string;
+  footnote?: string;
   formatValue?: (n: number) => string;
 }
 
@@ -41,22 +46,36 @@ interface TooltipState {
   visible: boolean;
 }
 
-const DS = {
+// Palette-locked series colors (same in light and dark — chosen for contrast on both surfaces)
+const DS_COLORS = {
   positive: PALETTES.forest[600],
   negative: PALETTES.terra[600],
   total: PALETTES.steel[500],
-  grid: CHART_CHROME.grid,
-  connector: CHART_CHROME.grid,
 } as const;
 
-export function WaterfallChart({ items, title, formatValue = formatCurrency }: WaterfallProps) {
+// Legend series for the three categories
+const LEGEND_SERIES: LegendSeries[] = [
+  { key: "positive", label: "Zufluss", color: DS_COLORS.positive },
+  { key: "negative", label: "Abfluss", color: DS_COLORS.negative },
+  { key: "total", label: "Endstand", color: DS_COLORS.total },
+];
+
+export function WaterfallChart({
+  items,
+  title,
+  subtitle,
+  footnote,
+  formatValue = formatChartValue,
+}: WaterfallProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [revealed, setRevealed] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [activeLabel, setActiveLabel] = useState<string | null>(null);
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
+
+  const tokens = useThemeTokens();
+  const { activeKey, onToggle } = useFocusLegend();
 
   const bars = useMemo<BarData[]>(() => {
     let running = 0;
@@ -68,11 +87,12 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
           isTotal: true,
           base: Math.min(0, item.value),
           top: Math.max(0, item.value),
-          color: DS.total,
+          color: DS_COLORS.total,
           description: item.description,
         };
       }
       const start = running;
+      // eslint-disable-next-line react-hooks/immutability
       running += item.value;
       return {
         label: item.label,
@@ -80,16 +100,26 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
         isTotal: false,
         base: Math.min(start, running),
         top: Math.max(start, running),
-        color: item.value >= 0 ? DS.positive : DS.negative,
+        color: item.value >= 0 ? DS_COLORS.positive : DS_COLORS.negative,
         description: item.description,
       };
     });
   }, [items]);
 
-  const hideTooltip = useCallback(() => setTooltip(null), []);
-  const toggleActive = useCallback((label: string) => {
-    setActiveLabel((prev) => (prev === label ? null : label));
-  }, []);
+  // Derive the active category key from activeKey (focus is per-category, not per-bar)
+  const activeCategoryKey = useMemo(() => {
+    if (activeKey === null) return null;
+    return activeKey as "positive" | "negative" | "total" | null;
+  }, [activeKey]);
+
+  const hideTooltip = () => setTooltip(null);
+
+  const handleBarToggle = (barLabel: string) => {
+    const bar = bars.find((b) => b.label === barLabel);
+    if (!bar) return;
+    const categoryKey = bar.isTotal ? "total" : bar.value >= 0 ? "positive" : "negative";
+    onToggle(categoryKey);
+  };
 
   useEffect(() => {
     const el = containerRef.current;
@@ -108,6 +138,7 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
     const el = containerRef.current;
     if (!el) return;
     if (reducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRevealed(true);
       return;
     }
@@ -126,7 +157,7 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
 
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || dimensions.width === 0) return;
+    if (!svg || dimensions.width === 0 || dimensions.height === 0) return;
 
     const { width, height } = dimensions;
     const margin = { ...responsiveMargin(width), top: 28, bottom: 8, left: 8, right: 8 };
@@ -155,15 +186,17 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
     const y = d3.scaleLinear().domain([yMin - yPad, yMax + yPad]).range([innerH, 0]);
     const zeroY = y(0);
 
+    // Zero baseline
     g.append("line")
       .attr("x1", 0)
       .attr("x2", innerW)
       .attr("y1", zeroY)
       .attr("y2", zeroY)
-      .attr("stroke", DS.grid)
+      .attr("stroke", tokens.grid)
       .attr("stroke-width", 1)
-      .attr("opacity", 0.4);
+      .attr("opacity", OPACITY.chartMuted);
 
+    // Connector lines between bars
     bars.forEach((bar, i) => {
       if (i >= bars.length - 1) return;
       const nextBar = bars[i + 1];
@@ -175,37 +208,44 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
         .attr("x2", x(i + 1) ?? 0)
         .attr("y1", y(connectY))
         .attr("y2", y(nextBar.isTotal ? (nextBar.value >= 0 ? nextBar.top : nextBar.base) : connectY))
-        .attr("stroke", DS.connector)
+        .attr("stroke", tokens.grid)
         .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "3 3")
-        .attr("opacity", 0.6);
+        .attr("stroke-dasharray", DASH.connector)
+        .attr("opacity", OPACITY.chartMuted);
 
       if (!revealed) {
         line.attr("opacity", 0);
-      } else if (!reducedMotion && activeLabel === null) {
+      } else if (!reducedMotion && activeCategoryKey === null) {
         line
           .attr("opacity", 0)
           .transition()
           .delay(i * ANIMATION.staggerDelay + ANIMATION.duration * 0.4)
           .duration(300)
           .ease(d3.easeCubicOut)
-          .attr("opacity", 0.6);
+          .attr("opacity", OPACITY.chartMuted);
       }
     });
 
+    // Bars
     bars.forEach((bar, i) => {
+      const barCategoryKey = bar.isTotal ? "total" : bar.value >= 0 ? "positive" : "negative";
       const barX = x(i) ?? 0;
       const barTop = y(bar.top);
       const barBottom = y(bar.base);
       const barH = Math.max(barBottom - barTop, 1);
       const barCx = barX + x.bandwidth() / 2;
-      const isActive = activeLabel === bar.label;
-      const isDimmed = activeLabel !== null && !isActive;
-      const barOpacity = isDimmed ? 0.25 : bar.isTotal ? 1 : 0.85;
+      const isActive = activeCategoryKey === barCategoryKey;
+      const isDimmed = activeCategoryKey !== null && !isActive;
+      const barOpacity = isDimmed
+        ? OPACITY.chartInactive
+        : bar.isTotal
+          ? OPACITY.chartActive
+          : OPACITY.chartNormal;
 
       const labelPad = 18;
       const hitTop = Math.min(barTop - labelPad, zeroY - iconR - 2);
       const hitBottom = bar.value >= 0 ? barBottom : barBottom + labelPad;
+
       g.append("rect")
         .attr("x", barX)
         .attr("y", hitTop)
@@ -235,7 +275,7 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
           }
         })
         .on("mouseleave", () => setTooltip(null))
-        .on("click", () => toggleActive(bar.label));
+        .on("click", () => handleBarToggle(bar.label));
 
       const rect = g
         .append("rect")
@@ -256,13 +296,13 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
           .attr("fill", "none")
           .attr("stroke", bar.color)
           .attr("stroke-width", 2)
-          .attr("stroke-opacity", 0.5)
+          .attr("stroke-opacity", OPACITY.chartMuted)
           .attr("pointer-events", "none");
       }
 
       if (!revealed) {
         rect.attr("y", y(0)).attr("height", 0);
-      } else if (reducedMotion || activeLabel !== null) {
+      } else if (reducedMotion || activeCategoryKey !== null) {
         rect.attr("y", barTop).attr("height", barH);
       } else {
         rect
@@ -283,7 +323,7 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
         .attr("y", labelY)
         .attr("text-anchor", "middle")
         .attr("fill", bar.color)
-        .attr("fill-opacity", isDimmed ? 0.3 : 1)
+        .attr("fill-opacity", isDimmed ? OPACITY.chartInactive + 0.05 : OPACITY.chartActive)
         .attr("font-size", fontSize)
         .attr("font-weight", 600)
         .attr("font-variant-numeric", "tabular-nums")
@@ -292,40 +332,48 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
 
       if (!revealed) {
         label.attr("opacity", 0);
-      } else if (!reducedMotion && activeLabel === null) {
+      } else if (!reducedMotion && activeCategoryKey === null) {
         label
           .attr("opacity", 0)
           .transition()
           .delay(i * ANIMATION.staggerDelay + 300)
           .duration(200)
           .ease(d3.easeCubicOut)
-          .attr("opacity", isDimmed ? 0.3 : 1);
+          .attr("opacity", isDimmed ? OPACITY.chartInactive + 0.05 : OPACITY.chartActive);
       }
     });
 
+    // Icon layer — circles at zero line with initials
     const iconLayer = g.append("g").attr("class", "icon-layer");
     bars.forEach((bar, i) => {
+      const barCategoryKey = bar.isTotal ? "total" : bar.value >= 0 ? "positive" : "negative";
       const barCx = (x(i) ?? 0) + x.bandwidth() / 2;
-      const isDimmed = activeLabel !== null && activeLabel !== bar.label;
+      const isDimmed = activeCategoryKey !== null && activeCategoryKey !== barCategoryKey;
       const iconGroup = iconLayer
         .append("g")
         .attr("transform", `translate(${barCx},${zeroY})`)
         .attr("pointer-events", "none");
-      iconGroup.append("circle").attr("r", iconR + 1.5).attr("fill", "white");
-      iconGroup.append("circle").attr("r", iconR).attr("fill", bar.color).attr("fill-opacity", isDimmed ? 0.08 : 0.15);
+
+      // Halo uses theme surface so it reads correctly in dark mode
+      iconGroup.append("circle").attr("r", iconR + 1.5).attr("fill", tokens.surface);
+      iconGroup
+        .append("circle")
+        .attr("r", iconR)
+        .attr("fill", bar.color)
+        .attr("fill-opacity", isDimmed ? 0.08 : 0.15);
       iconGroup
         .append("text")
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "central")
         .attr("fill", bar.color)
-        .attr("fill-opacity", isDimmed ? 0.3 : 1)
+        .attr("fill-opacity", isDimmed ? OPACITY.chartInactive : OPACITY.chartActive)
         .attr("font-size", iconR * 1.1)
         .attr("font-weight", 700)
         .text(bar.label.charAt(0).toUpperCase());
 
       if (!revealed) {
         iconGroup.attr("opacity", 0);
-      } else if (!reducedMotion && activeLabel === null) {
+      } else if (!reducedMotion && activeCategoryKey === null) {
         iconGroup
           .attr("opacity", 0)
           .transition()
@@ -335,7 +383,8 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
           .attr("opacity", 1);
       }
     });
-  }, [dimensions, bars, formatValue, revealed, reducedMotion, activeLabel, toggleActive]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dimensions, bars, formatValue, revealed, reducedMotion, activeCategoryKey, tokens]);
 
   const tooltipStyle = useMemo(() => {
     if (!tooltip) return undefined;
@@ -349,30 +398,52 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
     };
   }, [tooltip, dimensions.width]);
 
-  const [legendRow1, legendRow2] = useMemo(() => {
-    const mid = Math.ceil(bars.length / 2);
-    return [bars.slice(0, mid), bars.slice(mid)];
-  }, [bars]);
+  // Compose a meaningful aria-label summarizing the chart's key takeaway
+  const totalBar = bars.find((b) => b.isTotal);
+  const ariaLabel = useMemo(() => {
+    if (title) {
+      if (totalBar) {
+        const sign = totalBar.value >= 0 ? "+" : "";
+        return `${title}: Monatlicher Cashflow ${sign}${formatChartValue(totalBar.value)}`;
+      }
+      return title;
+    }
+    return "Cashflow-Aufschlüsselung";
+  }, [title, totalBar]);
 
   return (
     <div className="w-full">
-      {title && (
-        <h3 className="font-display mb-3 text-base font-semibold text-neutral-800">{title}</h3>
+      {(title || subtitle) && (
+        <div className="mb-3">
+          {title && (
+            <h3 className="font-display text-base font-semibold text-[var(--color-foreground)]">{title}</h3>
+          )}
+          {subtitle && (
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">
+              {subtitle}
+            </p>
+          )}
+        </div>
       )}
       <div
         ref={containerRef}
         className="relative h-64 w-full sm:h-72 md:h-80"
         onMouseLeave={hideTooltip}
       >
-        <svg ref={svgRef} className="h-full w-full" role="img" aria-label={title ?? "Wasserfall-Diagramm"} />
+        <svg
+          ref={svgRef}
+          className="h-full w-full"
+          role="img"
+          aria-label={ariaLabel}
+        />
 
         {tooltip?.visible && (
           <div
-            className="pointer-events-none absolute z-50 w-60 rounded-lg bg-white/95 px-4 py-3 shadow-xl backdrop-blur-sm"
-            style={{ border: "1px solid rgba(190,201,199,0.25)", ...tooltipStyle }}
+            className="pointer-events-none absolute z-50 w-[200px] sm:w-60 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 py-2 sm:px-4 sm:py-3 shadow-md backdrop-blur-sm"
+            style={tooltipStyle}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs-plus font-semibold text-neutral-800">{tooltip.bar.label}</p>
+              <p className="text-xs-plus font-semibold text-[var(--color-foreground)]">{tooltip.bar.label}</p>
               {tooltip.bar.isTotal && (
                 <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-medium text-primary-700">
                   Gesamt
@@ -387,7 +458,7 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
               {formatValue(tooltip.bar.value)}
             </p>
             {tooltip.bar.description && (
-              <p className="mt-1.5 text-xs leading-relaxed text-neutral-500">
+              <p className="mt-1.5 text-xs leading-relaxed text-[var(--color-text-secondary)]">
                 {tooltip.bar.description}
               </p>
             )}
@@ -395,36 +466,18 @@ export function WaterfallChart({ items, title, formatValue = formatCurrency }: W
         )}
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-y-1.5">
-        {[legendRow1, legendRow2].map((row, rowIdx) => (
-          <div key={rowIdx} className="flex gap-x-4">
-            {row.map((bar) => {
-              const isActive = activeLabel === bar.label;
-              const isDimmed = activeLabel !== null && !isActive;
-              return (
-                <button
-                  key={bar.label}
-                  type="button"
-                  onClick={() => toggleActive(bar.label)}
-                  className={`flex items-center gap-1.5 transition-opacity ${
-                    isDimmed ? "opacity-30" : "opacity-100"
-                  }`}
-                >
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white ${
-                      isActive ? "ring-2 ring-offset-1 ring-current" : ""
-                    }`}
-                    style={{ backgroundColor: bar.color, color: bar.color }}
-                  >
-                    <span className="text-white">{bar.label.charAt(0).toUpperCase()}</span>
-                  </span>
-                  <span className="text-2xs text-neutral-500 whitespace-nowrap">{bar.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+      {footnote && (
+        <p className="mt-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">{footnote}</p>
+      )}
+
+      <ChartLegend
+        mode="focus"
+        series={LEGEND_SERIES}
+        activeKey={activeCategoryKey}
+        onToggle={onToggle}
+        className="mt-3"
+        ariaLabel="Wasserfalldiagramm-Legende — Kategorie hervorheben"
+      />
     </div>
   );
 }

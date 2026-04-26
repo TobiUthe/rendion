@@ -63,3 +63,15 @@ export const Grid: Story = {
     </div>
   ),
 };
+
+export const Mobile: Story = {
+  args: { color: 'green', label: 'Cashflow / Monat', value: '+148 €' },
+  parameters: { viewport: { defaultViewport: 'mobile' } },
+  render: () => (
+    <div className="w-full px-4 grid grid-cols-2 gap-3">
+      <KpiCard color="green" label="Cashflow / Monat" value="+148 €" subtitle="Positiver Cashflow" />
+      <KpiCard color="yellow" label="Bruttorendite" value="3,79 %" />
+      <KpiCard color="neutral" label="Kaufpreisfaktor" value="26,4×" />
+    </div>
+  ),
+};

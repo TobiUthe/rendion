@@ -6,19 +6,26 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/lib/db/seed.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
+    "drizzle-orm": "^0.36.4",
     "lucide-react": "^1.8.0",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "recharts": "^3.8.1",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.1.2",
@@ -35,12 +42,15 @@
     "@types/react-dom": "^19",
     "@vitest/browser-playwright": "^4.1.4",
     "@vitest/coverage-v8": "^4.1.4",
+    "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "eslint-plugin-storybook": "^10.3.5",
     "playwright": "^1.59.1",
     "storybook": "^10.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vite": "^8.0.8",
     "vitest": "^4.1.4"

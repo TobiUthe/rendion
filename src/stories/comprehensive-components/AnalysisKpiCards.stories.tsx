@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { AnalysisKpiCards } from '@/components/results/AnalysisKpiCards';
 import { MOCK_ANALYSIS } from '@/lib/mock/analysis';
 
@@ -22,6 +22,16 @@ export const Default: Story = {
 export const SingleRow: Story = {
   args: {
     kpis: MOCK_ANALYSIS.kpis.slice(0, 3),
+  },
+};
+
+export const MobileTwoShown: Story = {
+  args: {
+    kpis: MOCK_ANALYSIS.kpis.slice(0, 4),
+    mobilePriority: ['Cashflow', 'Bruttorendite'],
+  },
+  parameters: {
+    viewport: { defaultViewport: 'mobile' },
   },
 };
 

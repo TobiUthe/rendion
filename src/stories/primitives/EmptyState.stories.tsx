@@ -60,3 +60,18 @@ export const FullWidth: Story = {
     className: 'min-h-[400px]',
   },
 };
+
+export const Mobile: Story = {
+  args: {
+    icon: BarChart3,
+    title: 'Keine Analysen gespeichert',
+    description: 'Starten Sie eine neue Analyse, um Ihre Ergebnisse zu vergleichen.',
+    action: { label: 'Neue Analyse', href: '/ergebnis' },
+  },
+  parameters: { viewport: { defaultViewport: 'mobile' } },
+  render: (args) => (
+    <div className="w-full px-4">
+      <EmptyState {...args} />
+    </div>
+  ),
+};

@@ -1,39 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Section } from "@/components/layout/Section";
 import { VerdictHero } from "@/components/results/VerdictHero";
 import { AnalysisKpiCards } from "@/components/results/AnalysisKpiCards";
+import { ChartsTabs } from "@/components/results/ChartsTabs";
+import { ParameterPanel } from "@/components/parameter-panel/ParameterPanel";
 import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Modal } from "@/components/ui/Modal";
+import { MockAuthForm } from "@/components/auth/MockAuthForm";
+import { quickCalcKapitalanlage } from "@/lib/calculator/quick-calc";
+import { mapResultToView } from "@/lib/calculator/mapResultToView";
 import type { ErgebnisView as ErgebnisViewData } from "@/lib/calculator/mapResultToView";
 import type { QuickCalcInput } from "@/lib/schemas/calculator";
 
-const WealthAccumulationChart = dynamic(
-  () => import("@/components/charts/d3/WealthAccumulationChart").then((m) => m.WealthAccumulationChart),
-  { ssr: false, loading: () => <Skeleton className="h-72 w-full md:h-96" /> },
-);
-
-const WaterfallChart = dynamic(
-  () => import("@/components/charts/d3/WaterfallChart").then((m) => m.WaterfallChart),
-  { ssr: false, loading: () => <Skeleton className="h-72 w-full" /> },
-);
-
-const TilgungsplanChart = dynamic(
-  () => import("@/components/charts/d3/TilgungsplanChart").then((m) => m.TilgungsplanChart),
-  { ssr: false, loading: () => <Skeleton className="h-72 w-full" /> },
-);
+const DESKTOP_KPI_INDICES = [0, 2, 3] as const;
+const MOBILE_PRIORITY: [string, string] = ["Cashflow", "Bruttorendite"];
 
 interface ErgebnisViewProps {
   view: ErgebnisViewData;
   input: QuickCalcInput;
-  kaufpreisfaktor: number;
 }
 
-export function ErgebnisView({ view, input, kaufpreisfaktor }: ErgebnisViewProps) {
+export function ErgebnisView({ view: initialView, input: initialInput }: ErgebnisViewProps) {
+  const [input, setInput] = useState<QuickCalcInput>(initialInput);
+  const [authOpen, setAuthOpen] = useState(false);
+
+  const handleInputChange = (next: QuickCalcInput) => {
+    setInput(next);
+  };
+
+  const view = useMemo<ErgebnisViewData>(() => {
+    const result = quickCalcKapitalanlage(input);
+    if (!result) return initialView;
+    return mapResultToView(input, result);
+  }, [input, initialView]);
+
+  const visibleKpis = DESKTOP_KPI_INDICES.map((i) => view.kpis[i]);
+
   return (
     <PublicLayout width="full">
       <div className="container-lg page-px py-8">
@@ -42,35 +47,40 @@ export function ErgebnisView({ view, input, kaufpreisfaktor }: ErgebnisViewProps
           subtitle={view.subtitle}
           backLink={{ href: "/", label: "Zurück zur Startseite" }}
           titleSuffix={
-            <VerdictHero
-              level={view.verdict.level}
-              label={view.verdict.label}
-              kaufpreisfaktor={kaufpreisfaktor}
-            />
+            <VerdictHero level={view.verdict.level} label={view.verdict.label} />
           }
           actions={<ShareActions />}
         />
 
         <div className="mt-6">
-          <AnalysisKpiCards kpis={view.kpis} />
+          <AnalysisKpiCards kpis={visibleKpis} mobilePriority={MOBILE_PRIORITY} />
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <Section title="Vermögensentwicklung 30 Jahre" className="lg:col-span-2">
-            <WealthAccumulationChart
-              projection={view.projection}
-              eigenkapital={input.eigenkapital}
-              kaufnebenkosten={view.kaufnebenkosten}
-            />
-          </Section>
-          <Section title="Monatlicher Cashflow">
-            <WaterfallChart items={view.waterfall} />
-          </Section>
-          <Section title="Tilgungsplan">
-            <TilgungsplanChart tilgungsplan={view.tilgungsplan} />
-          </Section>
+        <div className="mt-8">
+          <ChartsTabs
+            projection={view.projection}
+            eigenkapital={input.eigenkapital}
+            kaufnebenkosten={view.kaufnebenkosten}
+            waterfall={view.waterfall}
+            waterfallMeta={view.waterfallMeta}
+            tilgungsplan={view.tilgungsplan}
+          />
+        </div>
+
+        <div className="mt-6">
+          <ParameterPanel
+            input={input}
+            view={view}
+            onInputChange={handleInputChange}
+            onAuthRequest={() => setAuthOpen(true)}
+            inlineFrom="md"
+          />
         </div>
       </div>
+
+      <Modal open={authOpen} onClose={() => setAuthOpen(false)} title="Analyse speichern & anpassen">
+        <MockAuthForm mode="signup" title="Konto erstellen" submitLabel="Kostenlos registrieren" />
+      </Modal>
     </PublicLayout>
   );
 }
